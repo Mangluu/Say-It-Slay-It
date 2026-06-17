@@ -1,4 +1,4 @@
-import { Container } from "pixi.js";
+import { Assets, Container, Sprite } from "pixi.js";
 import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { mkText } from "../ui/theme";
@@ -16,6 +16,7 @@ export function ForgeScene(game: Game): Scene {
   let pi = 0;
   let arsenals: ItemSpec[][] = [[], []];
   let busy = false;
+  let cardRows: { item: ItemSpec; row: Container; sprited: boolean }[] = [];
 
   const titleTxt = mkText("", 38, C.COL.yellow);
   const countTxt = mkText("", 22, C.COL.grey, "700");
@@ -24,12 +25,17 @@ export function ForgeScene(game: Game): Scene {
 
   function refreshCards() {
     cards.removeChildren();
+    cardRows = [];
     const ars = arsenals[forPlayers[pi]];
     ars.forEach((it, i) => {
+      const row = new Container();
+      row.position.set(C.DESIGN_W / 2, 444 + i * 64);
       const t = mkText(`${it.emoji}  ${it.name}   [${it.archetype}]`, 24, C.COL.white, "700");
-      t.anchor.set(0.5); t.position.set(C.DESIGN_W / 2, 440 + i * 56); cards.addChild(t);
+      t.anchor.set(0.5); row.addChild(t);
       const fl = mkText(it.flavor, 16, C.COL.grey, "400");
-      fl.anchor.set(0.5); fl.position.set(C.DESIGN_W / 2, 440 + i * 56 + 22); cards.addChild(fl);
+      fl.anchor.set(0.5); fl.position.set(0, 22); row.addChild(fl);
+      cards.addChild(row);
+      cardRows.push({ item: it, row, sprited: false });
     });
     countTxt.text = `weapon ${Math.min(ars.length + 1, PER)} / ${PER}`;
   }
@@ -101,6 +107,18 @@ export function ForgeScene(game: Game): Scene {
       setupPlayer();
     },
     exit() { try { input.remove(); } catch { /* noop */ } },
-    update() {},
+    update() {
+      // swap the AI sprite onto each card the moment it arrives
+      for (const cr of cardRows) {
+        if (cr.item.spriteUrl && !cr.sprited) {
+          cr.sprited = true;
+          Assets.load(cr.item.spriteUrl).then((tex) => {
+            const s = new Sprite(tex);
+            s.anchor.set(0.5); s.width = 64; s.height = 64; s.position.set(-280, 6);
+            cr.row.addChild(s);
+          }).catch(() => { /* keep text only */ });
+        }
+      }
+    },
   };
 }
