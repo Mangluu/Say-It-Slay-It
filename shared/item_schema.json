@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ItemSpec",
+  "description": "What the LLM is allowed to return. STRING/ENUM ONLY: no numeric fields exist, so grammar-constrained decoding makes it impossible for the model to set power. The server stamps stats from archetypes.json.",
+  "type": "object",
+  "properties": {
+    "name":         { "type": "string", "maxLength": 40 },
+    "archetype":    { "type": "string", "enum": ["heavy_bomb", "light_spam", "homing_pest", "boomerang", "scatter", "sticky_trap", "cloud"] },
+    "flavor":       { "type": "string", "maxLength": 80 },
+    "voiceBark":    { "type": "string", "maxLength": 24 },
+    "visualPrompt": { "type": "string", "maxLength": 160 }
+  },
+  "required": ["name", "archetype", "flavor", "visualPrompt"],
+  "additionalProperties": false
+}
