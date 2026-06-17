@@ -19,10 +19,11 @@ export function TitleScene(game: Game): Scene {
       container.addChild(logo, sub);
 
       menu = new Menu([
-        { label: "SOLO SCORE ATTACK", onSelect: () => { game.mode = "solo"; game.music.start(); game.go("fight"); } },
-        { label: "VERSUS  (2 PLAYERS)", onSelect: () => { game.mode = "versus"; game.music.start(); game.go("fight"); } },
+        { label: "SOLO  (forge + fight)", onSelect: () => { game.mode = "solo"; game.arsenals = [[], []]; game.go("forge"); } },
+        { label: "VERSUS  (2 players, forge)", onSelect: () => { game.mode = "versus"; game.arsenals = [[], []]; game.go("forge"); } },
+        { label: "QUICK PLAY  (random weapons)", onSelect: () => { game.mode = "solo"; game.arsenals = [[], []]; game.music.start(); game.go("fight"); } },
         { label: "LEADERBOARD", onSelect: () => game.go("leaderboard") },
-      ], C.DESIGN_W / 2, 372);
+      ], C.DESIGN_W / 2, 348, 60);
       container.addChild(menu.node);
 
       const hint = mkText("W/S or ↑/↓ to choose  •  Enter to start  •  Esc to quit a match", 18, C.COL.grey, "700");

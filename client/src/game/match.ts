@@ -29,6 +29,7 @@ export class Match {
   private forging = [false, false];
   private prevThrow = [false, false];
   private prevSpecial = [false, false];
+  private refillIdx = [0, 0];
   private stateT = 0;
 
   constructor(
@@ -39,12 +40,23 @@ export class Match {
     private juice: Juice,
     private sfx: Sfx,
     public mode: "versus" | "solo" = "versus",
+    private arsenals: ItemSpec[][] = [[], []],
   ) {}
 
   async init() { await Promise.all([this.refill(0), this.refill(1)]); }
 
   private async refill(p: number) {
     if (this.forging[p]) return;
+    // Pre-forged arsenal (from the Forge beat): cycle through the player's picks.
+    const ars = this.arsenals[p];
+    if (ars && ars.length > 0) {
+      const item = ars[this.refillIdx[p] % ars.length];
+      this.refillIdx[p]++;
+      this.items[p] = item;
+      this.ammo[p] = item.stats.ammo;
+      return;
+    }
+    // Otherwise pull from the provider (mock pool, or LLM with empty phrase -> fallback).
     this.forging[p] = true;
     try {
       const item = await this.provider.forgeItem("", p);

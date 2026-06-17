@@ -4,8 +4,8 @@ import { Background } from "../render/background";
 import { KeyboardSource } from "../input/keyboard";
 import { Sfx } from "../audio/sfx";
 import { Music } from "../audio/music";
-import { ContentProvider } from "../content/types";
-import { MockProvider } from "../content/mock";
+import { ContentProvider, ItemSpec } from "../content/types";
+import { LocalProvider } from "../content/remote";
 
 export interface Scene {
   container: Container;
@@ -25,9 +25,10 @@ export class Game {
   kb = new KeyboardSource();
   sfx = new Sfx();
   music = new Music();
-  provider: ContentProvider = new MockProvider();
+  provider: ContentProvider = new LocalProvider();
 
   mode: "solo" | "versus" = "versus";
+  arsenals: ItemSpec[][] = [[], []];
   lastScore = 0;
   lastWave = 1;
 
@@ -41,6 +42,7 @@ export class Game {
     this.layout();
     window.addEventListener("resize", () => this.layout());
     window.addEventListener("keydown", (e) => {
+      if (e.target instanceof HTMLInputElement) return; // typing in the forge box
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space"].includes(e.code)) e.preventDefault();
       this.current?.onKey?.(e.code);
     });

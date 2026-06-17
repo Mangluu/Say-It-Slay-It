@@ -2,6 +2,7 @@ import { Application } from "pixi.js";
 import * as C from "./config";
 import { Game } from "./app/game";
 import { TitleScene } from "./scenes/title";
+import { ForgeScene } from "./scenes/forge";
 import { FightScene } from "./scenes/fight";
 import { ResultScene } from "./scenes/result";
 import { LeaderboardScene, LeaderboardEntryScene } from "./scenes/leaderboard";
@@ -16,6 +17,7 @@ async function main() {
 
   const game = new Game(app);
   game.register("title", TitleScene);
+  game.register("forge", ForgeScene);
   game.register("fight", FightScene);
   game.register("result", ResultScene);
   game.register("leaderboard", LeaderboardScene);

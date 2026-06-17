@@ -90,7 +90,7 @@ export function FightScene(game: Game): Scene {
       if (game.mode === "solo") { cpu = new CpuController(1); c1 = cpu; }
       else c1 = new KeyboardController(game.kb, 1);
 
-      match = new Match(gw, [f0, f1], [c0, c1], game.provider, juice, game.sfx, game.mode);
+      match = new Match(gw, [f0, f1], [c0, c1], game.provider, juice, game.sfx, game.mode, game.arsenals);
       if (game.mode === "solo") match.onWave = (w) => { if (cpu) cpu.difficulty = 1 + (w - 1) * 0.5; };
       void match.init();
       (window as any).__fight = () => ({ match, f0, f1 }); // debug hook
