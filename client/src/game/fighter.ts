@@ -13,6 +13,8 @@ export class Fighter {
   hitstun = 0;       // s of lost control after a hit
   flash = 0;         // s of hit-flash (visual)
   alive = true;
+  throwTimer = 0;    // s of throw-pose animation
+  animT = 0;         // animation clock
 
   private groundContacts = 0;
   private coyote = 0;
@@ -53,9 +55,13 @@ export class Fighter {
     this.jumpsLeft = 2; this.alive = true;
   }
 
+  triggerThrow() { this.throwTimer = 0.18; }
+
   update(dt: number, input: InputState) {
     this.flash = Math.max(0, this.flash - dt);
     this.dashCd = Math.max(0, this.dashCd - dt);
+    this.throwTimer = Math.max(0, this.throwTimer - dt);
+    this.animT += dt;
 
     if (this.hitstun > 0) { this.hitstun -= dt; return; } // no control while launched
 

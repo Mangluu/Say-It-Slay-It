@@ -3,7 +3,7 @@ import { GameWorld } from "./world";
 import { Fighter } from "./fighter";
 import { Projectile } from "./projectile";
 import { ContentProvider, ItemSpec } from "../content/types";
-import { InputSource } from "../input/types";
+import { Controller } from "./controller";
 import { Juice } from "./juice";
 import { Sfx } from "../audio/sfx";
 import { knockback, launchVelocity, hitstunFor } from "./combat";
@@ -19,6 +19,9 @@ export class Match {
   scores = [0, 0];
   round = 1;
   winner = -1;
+  score = 0;            // solo Score-Attack points
+  wave = 1;             // solo wave counter
+  onWave?: (wave: number) => void;
 
   items: (ItemSpec | null)[] = [null, null];
   ammo = [0, 0];
@@ -31,10 +34,11 @@ export class Match {
   constructor(
     private gw: GameWorld,
     readonly fighters: Fighter[],
-    private input: InputSource,
+    private controllers: Controller[],
     private provider: ContentProvider,
     private juice: Juice,
     private sfx: Sfx,
+    public mode: "versus" | "solo" = "versus",
   ) {}
 
   async init() { await Promise.all([this.refill(0), this.refill(1)]); }
@@ -54,11 +58,14 @@ export class Match {
 
     if (this.state !== "fight") {
       this.stateT -= dt;
-      if (this.stateT <= 0) this.advance();
+      if (this.stateT <= 0 && this.state === "roundover") this.advance(); // matchover is handled by the scene
       return;
     }
 
-    const ins = [this.input.sample(0), this.input.sample(1)];
+    const ins = [
+      this.controllers[0].sample(this.fighters[0], this.fighters[1], this.projectiles, dt),
+      this.controllers[1].sample(this.fighters[1], this.fighters[0], this.projectiles, dt),
+    ];
     for (let p = 0; p < 2; p++) {
       const ip = ins[p];
       if (ip.throw && !this.prevThrow[p] && this.cdThrow[p] <= 0 && this.ammo[p] > 0) this.spawnThrow(p);
@@ -93,6 +100,7 @@ export class Match {
     } else {
       this.projectiles.push(new Projectile(this.gw, item, f, ox, oy, dir, 0));
     }
+    f.triggerThrow();
     this.ammo[p]--;
     this.cdThrow[p] = item.stats.throwCooldown;
     this.sfx.throwItem();
@@ -148,6 +156,7 @@ export class Match {
     this.juice.doFlash(Math.min(0.6, 0.2 + damage * 0.012), 0.07);
     this.juice.burst(C.px(target.pos.x), C.sy(target.pos.y + 0.3), 0xffe14a, 12 + Math.floor(damage), 260 + damage * 6);
     this.sfx.hit(damage);
+    if (source.index === 0) this.score += Math.round(damage * 10); // solo scoring (unused in versus)
   }
 
   private cull() {
@@ -169,11 +178,22 @@ export class Match {
   }
 
   private ko(loser: number) {
+    this.sfx.ko();
+    this.juice.shake(0.85); this.juice.freeze(0.1);
+    this.clearProjectiles();
+
+    if (this.mode === "solo") {
+      if (loser === 0) {
+        this.state = "matchover"; this.winner = 1; this.stateT = 3.0; this.message = "GAME OVER";
+      } else {
+        this.score += 1500; this.wave++; this.scores[0]++;
+        this.state = "roundover"; this.stateT = 1.4; this.message = `K.O.!  WAVE ${this.wave}`;
+      }
+      return;
+    }
+
     const winner = 1 - loser;
     this.scores[winner]++;
-    this.sfx.ko();
-    this.juice.shake(0.8); this.juice.freeze(0.1);
-    this.clearProjectiles();
     if (this.scores[winner] >= ROUNDS_TO_WIN) {
       this.state = "matchover"; this.winner = winner; this.stateT = 3.5; this.message = `PLAYER ${winner + 1} WINS`;
     } else {
@@ -182,13 +202,13 @@ export class Match {
   }
 
   private advance() {
-    if (this.state === "matchover") { this.scores = [0, 0]; this.round = 1; this.winner = -1; }
-    else this.round++;
+    this.round++;
     this.fighters[0].reset(STAGE_SPAWN[0].x, STAGE_SPAWN[0].y);
     this.fighters[1].reset(STAGE_SPAWN[1].x, STAGE_SPAWN[1].y);
     this.fighters[0].facing = 1; this.fighters[1].facing = -1;
     void this.refill(0); void this.refill(1);
     this.state = "fight"; this.message = "";
+    if (this.mode === "solo" && this.onWave) this.onWave(this.wave);
   }
 
   private clearProjectiles() {
