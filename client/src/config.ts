@@ -18,6 +18,13 @@ export const DOUBLE_JUMP_SPEED = 11.8;
 export const JUMP_CUT = 0.5; // velocity kept when jump released early (variable height)
 export const COYOTE = 0.10; // s after leaving ground you can still jump
 export const JUMP_BUFFER = 0.12; // s before landing a jump press is remembered
+export const DASH_SPEED = 14;
+export const DASH_CD = 0.7;
+
+// Blast zones (ring-out happens beyond these, in meters)
+export const BLAST_X = 4;       // past left/right stage edges
+export const BLAST_TOP = 9;     // above the top of the screen
+export const BLAST_BOT = 5;     // below the floor
 
 // Palette
 export const COL = {
