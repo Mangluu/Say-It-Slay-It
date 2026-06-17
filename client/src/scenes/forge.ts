@@ -3,6 +3,7 @@ import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { mkText } from "../ui/theme";
 import { ItemSpec } from "../content/types";
+import { record } from "../util/hall";
 
 const PER = 3; // weapons per player
 
@@ -62,6 +63,7 @@ export function ForgeScene(game: Game): Scene {
     busy = true; statusTxt.text = "forging…";
     const item = await game.provider.forgeItem(phrase, forPlayers[pi]);
     ars.push(item);
+    record(item);
     input.value = ""; statusTxt.text = ""; busy = false;
     refreshCards();
     if (ars.length >= PER) nextOrFight();

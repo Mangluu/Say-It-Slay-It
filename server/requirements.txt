@@ -1,0 +1,17 @@
+# Core (forging + API)
+fastapi
+uvicorn[standard]
+websockets
+ollama
+pydantic
+python-multipart
+
+# Sprite generation (P5). NOTE: install torch FIRST from the CUDA 12.8 index so
+# it works on the RTX 5090 (Blackwell sm_120):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+diffusers
+transformers
+accelerate
+safetensors
+pillow
+rembg

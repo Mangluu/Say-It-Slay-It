@@ -28,6 +28,7 @@ export interface ItemSpec {
   color: number; // render tint until a real sprite exists (P5)
   emoji: string;
   stats: ArchetypeStats;
+  spriteUrl?: string; // set async by LocalProvider once SD-Turbo art is ready (P5)
 }
 
 export interface ContentProvider {

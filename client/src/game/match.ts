@@ -4,17 +4,19 @@ import { Fighter } from "./fighter";
 import { Projectile } from "./projectile";
 import { ContentProvider, ItemSpec } from "../content/types";
 import { Controller } from "./controller";
+import { NEUTRAL } from "../input/types";
 import { Juice } from "./juice";
 import { Sfx } from "../audio/sfx";
 import { knockback, launchVelocity, hitstunFor } from "./combat";
 import { STAGE_SPAWN } from "./stage";
 
-export type MatchState = "fight" | "roundover" | "matchover";
+export type MatchState = "ready" | "fight" | "roundover" | "matchover";
 const ROUNDS_TO_WIN = 2;
+const COUNTDOWN = 3.0;
 
 export class Match {
   projectiles: Projectile[] = [];
-  state: MatchState = "fight";
+  state: MatchState = "ready";
   message = "";
   scores = [0, 0];
   round = 1;
@@ -30,7 +32,7 @@ export class Match {
   private prevThrow = [false, false];
   private prevSpecial = [false, false];
   private refillIdx = [0, 0];
-  private stateT = 0;
+  private stateT = COUNTDOWN;
 
   constructor(
     private gw: GameWorld,
@@ -67,6 +69,15 @@ export class Match {
 
   update(dt: number) {
     if (this.juice.hitstop > 0) { this.juice.hitstop -= dt; return; } // sim freeze
+
+    if (this.state === "ready") {
+      this.stateT -= dt;
+      // settle the fighters with no control while the countdown runs
+      this.gw.update(dt, (step) => { this.fighters[0].update(step, NEUTRAL); this.fighters[1].update(step, NEUTRAL); });
+      this.message = this.stateT > 0 ? String(Math.ceil(this.stateT)) : "FIGHT!";
+      if (this.stateT <= -0.5) { this.state = "fight"; this.message = ""; }
+      return;
+    }
 
     if (this.state !== "fight") {
       this.stateT -= dt;
@@ -191,7 +202,7 @@ export class Match {
 
   private ko(loser: number) {
     this.sfx.ko();
-    this.juice.shake(0.85); this.juice.freeze(0.1);
+    this.juice.shake(0.85); this.juice.freeze(0.1); this.juice.slowmo(0.9);
     this.clearProjectiles();
 
     if (this.mode === "solo") {
@@ -219,7 +230,7 @@ export class Match {
     this.fighters[1].reset(STAGE_SPAWN[1].x, STAGE_SPAWN[1].y);
     this.fighters[0].facing = 1; this.fighters[1].facing = -1;
     void this.refill(0); void this.refill(1);
-    this.state = "fight"; this.message = "";
+    this.state = "ready"; this.stateT = COUNTDOWN; this.message = "";
     if (this.mode === "solo" && this.onWave) this.onWave(this.wave);
   }
 

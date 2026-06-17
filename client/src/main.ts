@@ -5,6 +5,7 @@ import { TitleScene } from "./scenes/title";
 import { ForgeScene } from "./scenes/forge";
 import { FightScene } from "./scenes/fight";
 import { ResultScene } from "./scenes/result";
+import { HallScene } from "./scenes/hall";
 import { LeaderboardScene, LeaderboardEntryScene } from "./scenes/leaderboard";
 
 async function main() {
@@ -20,6 +21,7 @@ async function main() {
   game.register("forge", ForgeScene);
   game.register("fight", FightScene);
   game.register("result", ResultScene);
+  game.register("hall", HallScene);
   game.register("leaderboard", LeaderboardScene);
   game.register("leaderboardEntry", LeaderboardEntryScene);
   game.go("title");

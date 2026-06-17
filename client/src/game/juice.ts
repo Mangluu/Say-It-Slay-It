@@ -9,6 +9,7 @@ export class Juice {
   readonly layer = new Container();   // particles, design space
   readonly flashG = new Graphics();   // fullscreen white flash
   hitstop = 0;
+  private slowmoT = 0;
 
   private trauma = 0;
   private flashT = 0;
@@ -23,6 +24,8 @@ export class Juice {
 
   shake(amount: number) { this.trauma = Math.min(1, this.trauma + amount); }
   freeze(d: number) { this.hitstop = Math.max(this.hitstop, d); }
+  slowmo(d: number) { this.slowmoT = Math.max(this.slowmoT, d); }
+  timeScale() { return this.slowmoT > 0 ? 0.35 : 1; }
   doFlash(a = 0.5, dur = 0.08) { this.flashT = dur; this.flashDur = dur; this.flashMax = a; }
 
   burst(xpx: number, ypx: number, color: number, n = 14, speed = 320) {
@@ -39,6 +42,7 @@ export class Juice {
   }
 
   update(dt: number) {
+    this.slowmoT = Math.max(0, this.slowmoT - dt);
     this.trauma = Math.max(0, this.trauma - dt * 1.6);
     if (this.flashT > 0) {
       this.flashT -= dt;

@@ -98,7 +98,7 @@ export function FightScene(game: Game): Scene {
     },
     exit() { for (const [, g] of projViews) g.destroy(); projViews.clear(); },
     update(dt) {
-      match.update(dt);
+      match.update(dt * juice.timeScale()); // slow-mo on KO
       juice.update(dt);
       v0.sync(f0); v1.sync(f1);
       syncProjectiles();
