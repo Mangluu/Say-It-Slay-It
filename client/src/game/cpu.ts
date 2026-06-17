@@ -6,7 +6,7 @@ import { Projectile } from "./projectile";
 // A simple, FUN (not smart) opponent FSM: hold spacing, throw on a cadence,
 // dodge incoming projectiles, retreat at high percent. Scales with difficulty.
 export class CpuController implements Controller {
-  private throwCd = 0.8;
+  private throwCd = 1.4; // grace before the first shot
   private jumpCd = 0;
   difficulty: number;
 
@@ -47,7 +47,7 @@ export class CpuController implements Controller {
     // throw on a cadence (faster at higher difficulty)
     if (this.throwCd <= 0) {
       s.throw = true;
-      this.throwCd = Math.max(0.35, 1.2 - 0.22 * this.difficulty);
+      this.throwCd = Math.max(0.45, 1.6 - 0.2 * this.difficulty); // gentler wave 1, ramps up
     }
 
     if (self.percent > 95 && dist < 3) s.axisX = -dir; // bail when about to die

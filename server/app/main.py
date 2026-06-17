@@ -27,6 +27,10 @@ class SpriteReq(BaseModel):
 @app.on_event("startup")
 def _startup():
     llm.warm()  # pre-warm Qwen so the first forge isn't slow
+    if SPRITES:  # warm SD-Turbo in the background so the first in-game sprite is fast
+        import threading
+        from . import images
+        threading.Thread(target=images.warm, daemon=True).start()
 
 
 @app.get("/health")

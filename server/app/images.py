@@ -58,8 +58,8 @@ def generate_sprite(prompt: str, _warm: bool = False) -> bytes:
     try:
         from rembg import remove
         img = remove(img)  # -> RGBA transparent cutout
-    except Exception as e:
-        print("[images] rembg failed:", e)
+    except BaseException as e:  # rembg can raise SystemExit if onnxruntime is missing
+        print("[images] rembg unavailable, using opaque sprite:", e)
 
     buf = io.BytesIO()
     img.save(buf, "PNG")

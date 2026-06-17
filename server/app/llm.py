@@ -38,7 +38,12 @@ SYSTEM = (
     "boomerang (returns), scatter (spread shot), sticky_trap (placed trap), cloud (lingering gas)."
 )
 
-DENYLIST = {"slur1", "slur2"}  # placeholder; extend for the showcase audience
+# PG-13 substring denylist for the summer-school audience (a name containing any
+# of these is replaced with a clean fallback). Extend as needed.
+DENYLIST = {
+    "fuck", "shit", "cunt", "bitch", "dick", "cock", "pussy", "penis", "vagina",
+    "nigger", "nigga", "faggot", "retard", "rape", "nazi", "whore", "slut", "bastard",
+}
 
 # Diverse examples anchor archetype VARIETY (the small model otherwise overuses
 # one archetype). Each maps a phrase to a clearly different archetype.
