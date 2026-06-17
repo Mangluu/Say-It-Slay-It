@@ -1,4 +1,4 @@
-import { Container, Graphics } from "pixi.js";
+import { Assets, Container, Graphics, Sprite } from "pixi.js";
 import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { GameWorld } from "../game/world";
@@ -23,27 +23,41 @@ export function FightScene(game: Game): Scene {
   let v0: FighterView, v1: FighterView;
   let cpu: CpuController | undefined;
   let projLayer: Container;
-  const projViews = new Map<Projectile, Graphics>();
+  interface PView { c: Container; g: Graphics; sprited: boolean; }
+  const projViews = new Map<Projectile, PView>();
   let ended = false;
   let endT = 0;
 
   function syncProjectiles() {
     const live = new Set(match.projectiles);
-    for (const [pr, g] of projViews) if (!live.has(pr)) { g.destroy(); projViews.delete(pr); }
+    for (const [pr, v] of projViews) if (!live.has(pr)) { v.c.destroy(); projViews.delete(pr); }
     for (const pr of match.projectiles) {
-      let g = projViews.get(pr);
-      if (!g) {
-        g = new Graphics();
+      let v = projViews.get(pr);
+      if (!v) {
+        const c = new Container();
+        const g = new Graphics();
         const r = C.px(pr.radius);
         g.circle(0, 0, r * 1.5).fill({ color: pr.spec.color, alpha: 0.25 }); // glow
         g.circle(0, 0, r).fill(pr.spec.color);
         g.circle(0, 0, r).stroke({ width: 2, color: 0x0a0a12 });
-        projLayer.addChild(g);
-        projViews.set(pr, g);
+        c.addChild(g);
+        projLayer.addChild(c);
+        v = { c, g, sprited: false };
+        projViews.set(pr, v);
+      }
+      // swap to the AI sprite once it has arrived
+      if (pr.spec.spriteUrl && !v.sprited) {
+        v.sprited = true;
+        const view = v;
+        Assets.load(pr.spec.spriteUrl).then((tex) => {
+          const s = new Sprite(tex); s.anchor.set(0.5);
+          const sz = C.px(pr.radius) * 3.4; s.width = sz; s.height = sz;
+          view.c.addChild(s); view.g.visible = false;
+        }).catch(() => { /* keep placeholder */ });
       }
       const p = pr.body.getPosition();
-      g.x = C.px(p.x); g.y = C.sy(p.y);
-      g.rotation += 0.2;
+      v.c.x = C.px(p.x); v.c.y = C.sy(p.y);
+      if (!v.sprited) v.g.rotation += 0.2;
     }
   }
 
@@ -96,7 +110,7 @@ export function FightScene(game: Game): Scene {
       (window as any).__fight = () => ({ match, f0, f1 }); // debug hook
 
     },
-    exit() { for (const [, g] of projViews) g.destroy(); projViews.clear(); },
+    exit() { for (const [, v] of projViews) v.c.destroy(); projViews.clear(); },
     update(dt) {
       match.update(dt * juice.timeScale()); // slow-mo on KO
       juice.update(dt);

@@ -38,7 +38,7 @@ export class LocalProvider implements ContentProvider {
       const d = await r.json();
       const arch: Archetype = (d.archetype in ARCHETYPES) ? d.archetype : "light_spam";
       const st = STYLE[arch];
-      return {
+      const item: ItemSpec = {
         id: `itm_${Math.random().toString(36).slice(2, 8)}`,
         name: d.name || "Mystery Weapon",
         archetype: arch,
@@ -49,8 +49,28 @@ export class LocalProvider implements ContentProvider {
         emoji: st.emoji,
         stats: ARCHETYPES[arch],
       };
+      // Fire-and-forget AI sprite (SD-Turbo). Never blocks the forge; the item
+      // shows its colour until the PNG arrives, then swaps in-game.
+      void fetchSprite(item.visualPrompt).then((url) => { if (url) item.spriteUrl = url; });
+      return item;
     } catch {
       return this.fallback.forgeItem(phrase, playerId); // safe-mode fallback
     }
   }
+}
+
+async function fetchSprite(prompt: string): Promise<string | undefined> {
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 30000); // gen can be slow; non-blocking anyway
+    const r = await fetch(`${API}/forge/sprite`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt }), signal: ctrl.signal,
+    });
+    clearTimeout(to);
+    if (!r.ok || r.status === 204) return undefined;
+    const blob = await r.blob();
+    if (blob.size < 200) return undefined;
+    return URL.createObjectURL(blob);
+  } catch { return undefined; }
 }
