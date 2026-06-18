@@ -6,6 +6,7 @@ import { Sfx } from "../audio/sfx";
 import { Music } from "../audio/music";
 import { ContentProvider, ItemSpec } from "../content/types";
 import { LocalProvider } from "../content/remote";
+import { PhoneHub } from "../input/phone";
 
 export interface Scene {
   container: Container;
@@ -28,6 +29,8 @@ export class Game {
   provider: ContentProvider = new LocalProvider();
 
   mode: "solo" | "versus" = "versus";
+  controlMode: "keyboard" | "phone" = "keyboard";
+  phoneHub?: PhoneHub;
   arsenals: ItemSpec[][] = [[], []];
   lastScore = 0;
   lastWave = 1;

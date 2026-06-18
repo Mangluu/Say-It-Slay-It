@@ -3,9 +3,12 @@ import * as C from "./config";
 import { Game } from "./app/game";
 import { TitleScene } from "./scenes/title";
 import { ForgeScene } from "./scenes/forge";
+import { PhoneForgeScene } from "./scenes/forge_phone";
 import { FightScene } from "./scenes/fight";
 import { ResultScene } from "./scenes/result";
 import { HallScene } from "./scenes/hall";
+import { ControlsScene } from "./scenes/controls";
+import { LobbyScene } from "./scenes/lobby";
 import { LeaderboardScene, LeaderboardEntryScene } from "./scenes/leaderboard";
 
 async function main() {
@@ -19,9 +22,12 @@ async function main() {
   const game = new Game(app);
   game.register("title", TitleScene);
   game.register("forge", ForgeScene);
+  game.register("forgePhone", PhoneForgeScene);
   game.register("fight", FightScene);
   game.register("result", ResultScene);
   game.register("hall", HallScene);
+  game.register("controls", ControlsScene);
+  game.register("lobby", LobbyScene);
   game.register("leaderboard", LeaderboardScene);
   game.register("leaderboardEntry", LeaderboardEntryScene);
   game.go("title");

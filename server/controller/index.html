@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>MIC DROP — Controller</title>
+  <style>
+    :root { --p1:#3ce6f0; --p2:#f03caa; --bg:#0a0a12; }
+    * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body { margin:0; height:100%; background:var(--bg); color:#fff; font-family:Arial, sans-serif; overflow:hidden; touch-action:none; }
+    #top { position:fixed; top:0; left:0; right:0; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; font-weight:900; }
+    #status { font-size:14px; color:#8a8ea4; }
+    #slot { font-size:20px; }
+    #mic { position:fixed; top:46px; left:50%; transform:translateX(-50%); width:78%; max-width:520px; height:76px;
+           border-radius:18px; border:3px solid var(--accent,#face46); background:rgba(250,210,70,0.12); color:#face46;
+           font-size:22px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+    #mic.rec { background:rgba(240,60,60,0.25); border-color:#f03c3c; color:#ff8a8a; }
+    #heard { position:fixed; top:132px; left:0; right:0; text-align:center; color:#fff; font-size:18px; min-height:24px; padding:0 16px; }
+    #stick { position:fixed; bottom:24px; left:18px; width:180px; height:180px; border-radius:50%;
+             background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.18); }
+    #thumb { position:absolute; width:78px; height:78px; border-radius:50%; left:51px; top:51px;
+             background:var(--accent,#3ce6f0); opacity:0.85; }
+    #buttons { position:fixed; bottom:24px; right:18px; width:230px; height:230px; }
+    .btn { position:absolute; width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+           font-weight:900; font-size:17px; background:rgba(255,255,255,0.10); border:2px solid rgba(255,255,255,0.22); }
+    .btn.act { background:rgba(255,255,255,0.30); }
+    #bThrow { right:0; top:60px; background:rgba(250,210,70,0.18); border-color:#face46; }
+    #bJump  { right:118px; top:60px; }
+    #bDash  { right:60px; top:0; }
+    #bSpecial { right:60px; bottom:0; background:rgba(240,60,170,0.18); border-color:#f03caa; }
+    #hint { position:fixed; bottom:2px; left:0; right:0; text-align:center; color:#555; font-size:11px; }
+  </style>
+</head>
+<body>
+  <div id="top"><div id="status">connecting...</div><div id="slot">P?</div></div>
+  <div id="mic">HOLD TO SHOUT YOUR WEAPON</div>
+  <div id="heard"></div>
+  <div id="stick"><div id="thumb"></div></div>
+  <div id="buttons">
+    <div class="btn" id="bDash">DASH</div>
+    <div class="btn" id="bJump">JUMP</div>
+    <div class="btn" id="bThrow">THROW</div>
+    <div class="btn" id="bSpecial">SPECIAL</div>
+  </div>
+  <div id="hint">MIC DROP controller</div>
+
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const room = (qs.get("room") || "MICDROP").toUpperCase();
+    const slot = parseInt(qs.get("slot") || "0", 10);
+    const accent = slot === 0 ? getComputedStyle(document.documentElement).getPropertyValue('--p1')
+                              : getComputedStyle(document.documentElement).getPropertyValue('--p2');
+    document.documentElement.style.setProperty('--accent', accent);
+    document.getElementById("slot").textContent = "P" + (slot + 1);
+    document.getElementById("slot").style.color = accent;
+
+    const statusEl = document.getElementById("status");
+    const state = { axisX: 0, jump: false, throw: false, dash: false, special: false };
+
+    // ---- websocket ----
+    let ws, connected = false;
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${proto}://${location.host}/ws?role=controller&room=${room}&slot=${slot}`);
+      ws.onopen = () => { connected = true; statusEl.textContent = "connected — room " + room; };
+      ws.onclose = () => { connected = false; statusEl.textContent = "disconnected, retrying..."; setTimeout(connect, 1000); };
+      ws.onmessage = (e) => { /* phase hints from the game could go here */ };
+    }
+    connect();
+
+    let lastSend = 0;
+    function send(force) {
+      const now = performance.now();
+      if (!force && now - lastSend < 40) return;
+      lastSend = now;
+      if (connected) ws.send(JSON.stringify({ type: "input", state }));
+    }
+
+    // ---- joystick (horizontal axis) ----
+    const stick = document.getElementById("stick"), thumb = document.getElementById("thumb");
+    let stickId = null;
+    function stickMove(t) {
+      const r = stick.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      let dx = t.clientX - cx, dy = t.clientY - cy;
+      const max = r.width / 2 - 20, d = Math.hypot(dx, dy);
+      if (d > max) { dx *= max / d; dy *= max / d; }
+      thumb.style.left = (51 + dx) + "px"; thumb.style.top = (51 + dy) + "px";
+      state.axisX = Math.max(-1, Math.min(1, dx / max));
+      send();
+    }
+    function stickEnd() { stickId = null; thumb.style.left = "51px"; thumb.style.top = "51px"; state.axisX = 0; send(true); }
+    stick.addEventListener("touchstart", e => { const t = e.changedTouches[0]; stickId = t.identifier; stickMove(t); e.preventDefault(); }, { passive: false });
+    stick.addEventListener("touchmove", e => { for (const t of e.changedTouches) if (t.identifier === stickId) stickMove(t); e.preventDefault(); }, { passive: false });
+    stick.addEventListener("touchend", e => { for (const t of e.changedTouches) if (t.identifier === stickId) stickEnd(); }, { passive: false });
+    stick.addEventListener("touchcancel", stickEnd);
+
+    // ---- buttons ----
+    function bindBtn(id, key) {
+      const el = document.getElementById(id);
+      const down = e => { state[key] = true; el.classList.add("act"); send(true); e.preventDefault(); };
+      const up = e => { state[key] = false; el.classList.remove("act"); send(true); e.preventDefault(); };
+      el.addEventListener("touchstart", down, { passive: false });
+      el.addEventListener("touchend", up, { passive: false });
+      el.addEventListener("touchcancel", up);
+    }
+    bindBtn("bJump", "jump"); bindBtn("bThrow", "throw"); bindBtn("bDash", "dash"); bindBtn("bSpecial", "special");
+
+    // ---- push-to-talk mic ----
+    const micEl = document.getElementById("mic"), heardEl = document.getElementById("heard");
+    let rec, chunks = [], mime = "audio/webm";
+    async function startRec() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { heardEl.textContent = "mic needs HTTPS"; return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : (MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "");
+        rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+        chunks = []; rec.ondataavailable = e => chunks.push(e.data); rec.start();
+        micEl.classList.add("rec"); micEl.textContent = "LISTENING... (release to forge)";
+      } catch (e) { heardEl.textContent = "mic blocked: " + e.message; }
+    }
+    function stopRec() {
+      if (!rec) return;
+      micEl.classList.remove("rec"); micEl.textContent = "forging...";
+      rec.onstop = async () => {
+        const blob = new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" });
+        rec.stream.getTracks().forEach(t => t.stop());
+        try {
+          const fd = new FormData();
+          fd.append("audio", blob, "clip." + ((rec.mimeType || "webm").includes("mp4") ? "mp4" : "webm"));
+          const r = await fetch("/asr", { method: "POST", body: fd });
+          const j = await r.json();
+          const text = (j.text || "").trim();
+          heardEl.textContent = text ? '"' + text + '"' : "(didn't catch that)";
+          if (text && connected) ws.send(JSON.stringify({ type: "voice", text }));
+        } catch (e) { heardEl.textContent = "asr error"; }
+        micEl.textContent = "HOLD TO SHOUT YOUR WEAPON";
+      };
+      rec.stop();
+    }
+    micEl.addEventListener("touchstart", e => { startRec(); e.preventDefault(); }, { passive: false });
+    micEl.addEventListener("touchend", e => { stopRec(); e.preventDefault(); }, { passive: false });
+  </script>
+</body>
+</html>

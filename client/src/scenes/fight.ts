@@ -99,10 +99,15 @@ export function FightScene(game: Game): Scene {
       hud = new Hud([C.COL.p1, C.COL.p2]);
       container.addChild(hud.node);
 
-      const c0 = new KeyboardController(game.kb, 0);
-      let c1;
-      if (game.mode === "solo") { cpu = new CpuController(1); c1 = cpu; }
-      else c1 = new KeyboardController(game.kb, 1);
+      let c0, c1;
+      if (game.controlMode === "phone" && game.phoneHub) {
+        c0 = game.phoneHub.controller(0);
+        c1 = game.phoneHub.controller(1);
+      } else {
+        c0 = new KeyboardController(game.kb, 0);
+        if (game.mode === "solo") { cpu = new CpuController(1); c1 = cpu; }
+        else c1 = new KeyboardController(game.kb, 1);
+      }
 
       match = new Match(gw, [f0, f1], [c0, c1], game.provider, juice, game.sfx, game.mode, game.arsenals);
       if (game.mode === "solo") match.onWave = (w) => { if (cpu) cpu.difficulty = 1 + (w - 1) * 0.5; };

@@ -38,6 +38,8 @@ export const COL = {
   white: 0xf0f0fa,
   grey: 0x8a8ea4,
   yellow: 0xface46,
+  green: 0x6ae06a,
+  red: 0xf03c3c,
 };
 
 // Meters -> design pixels

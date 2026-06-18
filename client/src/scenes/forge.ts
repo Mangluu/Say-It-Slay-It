@@ -28,7 +28,7 @@ export function ForgeScene(game: Game): Scene {
 
   function setupPlayer() {
     const p = forPlayers[pi];
-    titleTxt.text = `PLAYER ${p + 1} — FORGE YOUR ARSENAL`;
+    titleTxt.text = `PLAYER ${p + 1}: FORGE YOUR ARSENAL`;
     (titleTxt.style as any).fill = p === 0 ? C.COL.p1 : C.COL.p2;
     submitted = 0;
     rows = [];

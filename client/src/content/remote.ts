@@ -1,6 +1,7 @@
 import { ContentProvider, ItemSpec, Archetype } from "./types";
 import { ARCHETYPES } from "./archetypes";
 import { MockProvider } from "./mock";
+import { API } from "../net/config";
 
 // Render style per archetype (the LLM never sets these). Stats are stamped from
 // the shared archetype table client-side = the fairness firewall.
@@ -13,12 +14,6 @@ const STYLE: Record<Archetype, { color: number; emoji: string }> = {
   sticky_trap: { color: 0xff9ad2, emoji: "\u{1F36C}" },
   cloud:       { color: 0x9ad84a, emoji: "\u{1F4A8}" },
 };
-
-// Desktop client + backend run on the same machine. Use 127.0.0.1 (not
-// "localhost") so we hit IPv4 directly — on Windows "localhost" can resolve to
-// IPv6 ::1, which uvicorn's 0.0.0.0 bind does not listen on. (Phones in P4 hit
-// the LAN IP via the backend-served page.)
-const API = (import.meta as any).env?.VITE_API || "http://127.0.0.1:8000";
 
 export class LocalProvider implements ContentProvider {
   private fallback = new MockProvider();
