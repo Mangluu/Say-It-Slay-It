@@ -14,7 +14,7 @@ from .content_pool import ARCHETYPES, POOL, random_fallback
 # Smaller model by default: on this Blackwell/Ollama build the 7B runs slowly,
 # and a 3B is plenty for naming a weapon + picking an archetype. Override with
 # MICDROP_MODEL.
-MODEL = os.environ.get("MICDROP_MODEL", "qwen2.5:3b-instruct")
+MODEL = os.environ.get("MICDROP_MODEL", "qwen2.5:1.5b-instruct")
 
 SCHEMA = {
     "type": "object",

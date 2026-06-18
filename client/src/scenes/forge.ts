@@ -1,4 +1,4 @@
-import { Assets, Container, Sprite } from "pixi.js";
+import { Assets, Container, Sprite, Text } from "pixi.js";
 import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { mkText } from "../ui/theme";
@@ -7,72 +7,83 @@ import { record } from "../util/hall";
 
 const PER = 3; // weapons per player
 
-// The Forge beat: type (P4: shout) a phrase, an LLM turns it into a weapon.
-// Uses a floating DOM <input> for text (works on phones later too).
+// The Forge beat. NON-BLOCKING: you type phrases as fast as you like; each one
+// forges in the background and its card fills in (name, then AI sprite) when ready.
+// The fight starts as soon as you've entered your phrases; any still-generating
+// weapons stream into your arsenal during the countdown / early fight.
+interface Row { item: ItemSpec | null; row: Container; nameTxt: Text; flavorTxt: Text; sprited: boolean; }
+
 export function ForgeScene(game: Game): Scene {
   const container = new Container();
   let input: HTMLInputElement;
   let forPlayers: number[] = [];
   let pi = 0;
   let arsenals: ItemSpec[][] = [[], []];
-  let busy = false;
-  let cardRows: { item: ItemSpec; row: Container; sprited: boolean }[] = [];
+  let submitted = 0;
+  let rows: Row[] = [];
 
   const titleTxt = mkText("", 38, C.COL.yellow);
   const countTxt = mkText("", 22, C.COL.grey, "700");
-  const statusTxt = mkText("", 24, C.COL.p1, "700");
   const cards = new Container();
-
-  function refreshCards() {
-    cards.removeChildren();
-    cardRows = [];
-    const ars = arsenals[forPlayers[pi]];
-    ars.forEach((it, i) => {
-      const row = new Container();
-      row.position.set(C.DESIGN_W / 2, 444 + i * 64);
-      const t = mkText(`${it.emoji}  ${it.name}   [${it.archetype}]`, 24, C.COL.white, "700");
-      t.anchor.set(0.5); row.addChild(t);
-      const fl = mkText(it.flavor, 16, C.COL.grey, "400");
-      fl.anchor.set(0.5); fl.position.set(0, 22); row.addChild(fl);
-      cards.addChild(row);
-      cardRows.push({ item: it, row, sprited: false });
-    });
-    countTxt.text = `weapon ${Math.min(ars.length + 1, PER)} / ${PER}`;
-  }
 
   function setupPlayer() {
     const p = forPlayers[pi];
     titleTxt.text = `PLAYER ${p + 1} — FORGE YOUR ARSENAL`;
     (titleTxt.style as any).fill = p === 0 ? C.COL.p1 : C.COL.p2;
+    submitted = 0;
+    rows = [];
+    cards.removeChildren();
+    countTxt.text = `0 / ${PER}  —  type and hit Enter`;
     input.value = "";
     input.focus();
-    refreshCards();
   }
 
   function nextOrFight() {
     pi++;
     if (pi >= forPlayers.length) {
-      game.arsenals = arsenals;
+      game.arsenals = arsenals;            // same array refs the pending forges push into
       try { input.remove(); } catch { /* noop */ }
       game.music.start();
-      game.go("fight");
+      game.go("fight");                    // weapons keep streaming in during the countdown
     } else {
       setupPlayer();
     }
   }
 
-  async function submit() {
-    if (busy) return;
+  function submit() {
+    if (submitted >= PER) { nextOrFight(); return; } // arsenal full -> Enter starts the fight
     const phrase = input.value.trim();
-    const ars = arsenals[forPlayers[pi]];
-    if (!phrase) { if (ars.length > 0) nextOrFight(); return; }
-    busy = true; statusTxt.text = "forging…";
-    const item = await game.provider.forgeItem(phrase, forPlayers[pi]);
-    ars.push(item);
-    record(item);
-    input.value = ""; statusTxt.text = ""; busy = false;
-    refreshCards();
-    if (ars.length >= PER) nextOrFight();
+    if (!phrase) { if (submitted > 0) nextOrFight(); return; }
+    input.value = "";
+    const p = forPlayers[pi];
+    submitted++;
+    countTxt.text = `${submitted} / ${PER}  —  forging in the background...`;
+
+    // placeholder card, filled when the forge resolves
+    const i = rows.length;
+    const row = new Container();
+    row.position.set(C.DESIGN_W / 2, 444 + i * 64);
+    const nameTxt = mkText(`forging "${phrase}"...`, 23, C.COL.grey, "700"); nameTxt.anchor.set(0.5);
+    const flavorTxt = mkText("", 16, C.COL.grey, "400"); flavorTxt.anchor.set(0.5); flavorTxt.position.set(0, 22);
+    row.addChild(nameTxt, flavorTxt);
+    cards.addChild(row);
+    const r: Row = { item: null, row, nameTxt, flavorTxt, sprited: false };
+    rows.push(r);
+
+    game.provider.forgeItem(phrase, p).then((item) => {
+      arsenals[p].push(item);
+      record(item);
+      r.item = item;
+      r.nameTxt.text = `${item.emoji}  ${item.name}   [${item.archetype}]`;
+      (r.nameTxt.style as any).fill = C.COL.white;
+      r.flavorTxt.text = item.flavor;
+    }).catch(() => { r.nameTxt.text = "(forge failed)"; });
+
+    if (submitted >= PER) {
+      (countTxt.style as any).fill = C.COL.yellow;
+      countTxt.text = "arsenal forged — press ENTER to FIGHT!";
+      input.placeholder = "press Enter to fight";
+    }
   }
 
   return {
@@ -83,11 +94,10 @@ export function ForgeScene(game: Game): Scene {
       pi = 0;
 
       titleTxt.anchor.set(0.5); titleTxt.position.set(C.DESIGN_W / 2, 86);
-      const help = mkText("type a weapon, Enter to forge  •  empty Enter to start early", 20, C.COL.grey, "700");
+      const help = mkText("type a weapon, Enter to forge (x3)  •  empty Enter to start now", 20, C.COL.grey, "700");
       help.anchor.set(0.5); help.position.set(C.DESIGN_W / 2, 134);
       countTxt.anchor.set(0.5); countTxt.position.set(C.DESIGN_W / 2, 170);
-      statusTxt.anchor.set(0.5); statusTxt.position.set(C.DESIGN_W / 2, 620);
-      container.addChild(titleTxt, help, countTxt, statusTxt, cards);
+      container.addChild(titleTxt, help, countTxt, cards);
 
       input = document.createElement("input");
       input.type = "text"; input.maxLength = 60;
@@ -101,21 +111,20 @@ export function ForgeScene(game: Game): Scene {
       document.body.appendChild(input);
       input.addEventListener("keydown", (e) => {
         e.stopPropagation();
-        if (e.key === "Enter") { e.preventDefault(); void submit(); }
+        if (e.key === "Enter") { e.preventDefault(); submit(); }
       });
       setTimeout(() => input.focus(), 60);
       setupPlayer();
     },
     exit() { try { input.remove(); } catch { /* noop */ } },
     update() {
-      // swap the AI sprite onto each card the moment it arrives
-      for (const cr of cardRows) {
-        if (cr.item.spriteUrl && !cr.sprited) {
-          cr.sprited = true;
-          Assets.load(cr.item.spriteUrl).then((tex) => {
+      for (const r of rows) {
+        if (r.item && r.item.spriteUrl && !r.sprited) {
+          r.sprited = true;
+          Assets.load(r.item.spriteUrl).then((tex) => {
             const s = new Sprite(tex);
             s.anchor.set(0.5); s.width = 64; s.height = 64; s.position.set(-280, 6);
-            cr.row.addChild(s);
+            r.row.addChild(s);
           }).catch(() => { /* keep text only */ });
         }
       }
