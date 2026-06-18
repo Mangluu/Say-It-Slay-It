@@ -70,12 +70,15 @@ to disable image gen. The whole game is playable with **zero AI** (Quick Play +
 the mock pool), so the booth always has a guaranteed fallback.
 
 ## Status
-- ✅ **P0** scaffold + fighter, **P1** combat + items + juice, **P2** solo + leaderboard + game flow + graphics overhaul, **P3** backend + local LLM forging (Qwen2.5-3B), **P6 (partial)** countdown, slow-mo KO, Hall of Fame, ops.
-- ⏳ **P5** SD-Turbo sprite endpoint built; client art-swap wiring is the next step.
-- ⏳ **P4** phones-as-controllers + voice (faster-whisper) — designed, not yet built (needs on-site phone + HTTPS testing).
+- ✅ **P0** scaffold + fighter · **P1** combat + items + juice · **P2** solo + leaderboard + game flow + graphics overhaul · **P3** backend + local LLM forging · **P5** SD-Turbo AI weapon sprites (on cards + projectiles) · **P6** countdown, slow-mo KO, Hall of Fame, Controls screen, ops.
+- ✅ **P4** phones as controllers + voice forging: WebSocket relay, touch controller page, faster-whisper `/asr`, lobby QR join, phone forge. Touch + voice verified via a simulated phone over the relay. **Real-device step remaining (needs you):** the phone mic requires HTTPS, so run `scripts/setup_certs.ps1` (mkcert) and install the root CA on each phone; touch control works over HTTP without it.
+- Forge is **non-blocking**: type/shout phrases fast, weapons forge in the background and stream into play.
 
-### Notes
-- On this Blackwell/Ollama build the 7B ran slowly (~5 tok/s), so we use **Qwen2.5-3B** (~4s/forge). `torch 2.11+cu128` confirmed working on the 5090 (`get_device_capability() == (12,0)`). Override the model with `MICDROP_MODEL`.
+### Notes (measured on this Blackwell/Ollama box)
+- **LLM:** Ollama 7B ran ~5 tok/s and 3B ~10 tok/s here (a Blackwell/Ollama kernel issue, not torch), so the default is **Qwen2.5-1.5B** (~2.5s/forge, still good names + archetype variety). Override with `MICDROP_MODEL`.
+- **Voice:** faster-whisper runs on **CPU** (the CUDA ctranslate2 path hard-crashes uvicorn on Blackwell); `base.en` is ~0.5s/clip. Override with `MICDROP_ASR_DEVICE=cuda`.
+- **Sprites:** `torch 2.11+cu128` works on the 5090 (`get_device_capability()==(12,0)`); SD-Turbo ~1.5s warm.
+- **Networking:** client uses `127.0.0.1` (Windows `localhost`→IPv6 ::1 isn't served by uvicorn's IPv4 bind). HTTPS is a one-flag switch (`VITE_API` + certs; `run_show.ps1` auto-detects).
 
 ## Provenance
 Local models: Qwen2.5 (Apache-2.0 weights via Ollama), SD-Turbo (Stability AI Community License, free under $1M rev). Code deps MIT/Apache/BSD. Fighter art + UI drawn at runtime (ours). SFX/music procedurally synthesised (ours). Every weapon sprite is generated locally.
