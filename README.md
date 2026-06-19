@@ -1,4 +1,4 @@
-# MIC DROP
+# Say It, Slay It
 
 **Shout it. Forge it. Throw it.** A local couch brawler where your weapons are
 *generated from what you say*. Before each round you type (P4: shout) a few

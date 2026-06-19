@@ -1,8 +1,10 @@
-import { Assets, Container, Sprite, Text } from "pixi.js";
+import { Container, Sprite, Text } from "pixi.js";
 import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { mkText } from "../ui/theme";
 import { ItemSpec } from "../content/types";
+import { releaseAllSprites } from "../content/remote";
+import { loadTex } from "../util/tex";
 import { record } from "../util/hall";
 
 const PER = 3; // weapons per player
@@ -33,7 +35,7 @@ export function ForgeScene(game: Game): Scene {
     submitted = 0;
     rows = [];
     cards.removeChildren();
-    countTxt.text = `0 / ${PER}  —  type and hit Enter`;
+    countTxt.text = `0 / ${PER}  :  type and hit Enter`;
     input.value = "";
     input.focus();
   }
@@ -57,7 +59,7 @@ export function ForgeScene(game: Game): Scene {
     input.value = "";
     const p = forPlayers[pi];
     submitted++;
-    countTxt.text = `${submitted} / ${PER}  —  forging in the background...`;
+    countTxt.text = `${submitted} / ${PER}  :  forging in the background...`;
 
     // placeholder card, filled when the forge resolves
     const i = rows.length;
@@ -81,7 +83,7 @@ export function ForgeScene(game: Game): Scene {
 
     if (submitted >= PER) {
       (countTxt.style as any).fill = C.COL.yellow;
-      countTxt.text = "arsenal forged — press ENTER to FIGHT!";
+      countTxt.text = "arsenal forged, press ENTER to FIGHT!";
       input.placeholder = "press Enter to fight";
     }
   }
@@ -89,6 +91,7 @@ export function ForgeScene(game: Game): Scene {
   return {
     container,
     enter() {
+      void releaseAllSprites(); // free the previous match's sprite blobs + textures
       forPlayers = game.mode === "solo" ? [0] : [0, 1];
       arsenals = [[], []];
       pi = 0;
@@ -121,7 +124,7 @@ export function ForgeScene(game: Game): Scene {
       for (const r of rows) {
         if (r.item && r.item.spriteUrl && !r.sprited) {
           r.sprited = true;
-          Assets.load(r.item.spriteUrl).then((tex) => {
+          loadTex(r.item.spriteUrl).then((tex) => {
             const s = new Sprite(tex);
             s.anchor.set(0.5); s.width = 64; s.height = 64; s.position.set(-280, 6);
             r.row.addChild(s);

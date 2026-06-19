@@ -8,6 +8,7 @@ pip-install.log
 server/.venv/
 server/certs/
 server/cache/
+server/logs/
 __pycache__/
 *.pyc
 .DS_Store

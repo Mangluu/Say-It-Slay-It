@@ -29,6 +29,7 @@ export interface ItemSpec {
   emoji: string;
   stats: ArchetypeStats;
   spriteUrl?: string; // set async by LocalProvider once SD-Turbo art is ready (P5)
+  effect?: "freeze" | "burn" | "shock"; // on-hit status derived from the words you shouted (P12)
 }
 
 export interface ContentProvider {

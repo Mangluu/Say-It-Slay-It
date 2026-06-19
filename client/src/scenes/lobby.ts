@@ -1,9 +1,11 @@
-import { Assets, Container, Sprite, Text } from "pixi.js";
+import { Assets, Container, Sprite, Text, Texture } from "pixi.js";
 import QRCode from "qrcode";
 import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { mkText } from "../ui/theme";
 import { PhoneHub } from "../input/phone";
+import { randomMockItem } from "../content/mock";
+import { releaseAllSprites } from "../content/remote";
 import { API, controllerOrigin } from "../net/config";
 
 function roomCode(): string {
@@ -46,13 +48,27 @@ export function LobbyScene(game: Game): Scene {
   return {
     container,
     enter() {
+      releaseAllSprites(); // free sprites left over from a previous match this session
       const t = mkText("SCAN TO JOIN  (VERSUS)", 48, C.COL.yellow); t.anchor.set(0.5); t.position.set(C.DESIGN_W / 2, 66); container.addChild(t);
       statusTxt = mkText("connecting...", 22, C.COL.white, "700"); statusTxt.anchor.set(0.5); statusTxt.position.set(C.DESIGN_W / 2, 112); container.addChild(statusTxt);
       startTxt = mkText("press ENTER to start  •  Esc to cancel", 24, C.COL.green, "900"); startTxt.anchor.set(0.5); startTxt.position.set(C.DESIGN_W / 2, C.DESIGN_H - 52); startTxt.visible = false; container.addChild(startTxt);
       const note = mkText("phones must be on the same Wi-Fi / hotspot as this laptop  (voice needs the HTTPS setup; touch works now)", 15, C.COL.grey, "700");
       note.anchor.set(0.5); note.position.set(C.DESIGN_W / 2, C.DESIGN_H - 22); container.addChild(note);
 
+      game.profiles = [{ username: "" }, { username: "" }];
       hub = new PhoneHub(code); game.phoneHub = hub; hub.onChange = refresh; hub.connect();
+
+      // A phone can send a name + a low-res cartoon selfie head (already stylized on
+      // the phone; the raw photo never leaves it). Turn it into a fighter texture.
+      hub.onProfile = (slot, username, photo) => {
+        game.profiles[slot] = { username };
+        if (photo) {
+          const img = new Image();
+          img.onload = () => { game.profiles[slot] = { username, headTex: Texture.from(img) }; };
+          img.src = photo;
+        }
+        refresh();
+      };
 
       (async () => {
         let lan = "127.0.0.1";
@@ -69,7 +85,12 @@ export function LobbyScene(game: Game): Scene {
       if (k === "Escape") { hub.close(); game.phoneHub = undefined; game.go("title"); }
       else if (k === "Enter" && (hub.joined[0] || hub.joined[1])) {
         game.controlMode = "phone"; game.mode = "versus";
-        game.go("forgePhone");
+        // No separate forge beat: start each player with one quick weapon, then the
+        // rest get forged by shouting during the fight.
+        game.arsenals = [[randomMockItem()], [randomMockItem()]];
+        game.music.start();
+        game.go("tutorial"); // ~30s SOUND CHECK warmup, then the fight
+
       }
     },
   };

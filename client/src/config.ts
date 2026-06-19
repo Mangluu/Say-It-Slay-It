@@ -20,11 +20,20 @@ export const COYOTE = 0.10; // s after leaving ground you can still jump
 export const JUMP_BUFFER = 0.12; // s before landing a jump press is remembered
 export const DASH_SPEED = 14;
 export const DASH_CD = 0.7;
+export const MELEE_CD = 0.4;    // s between melee shoves (stops one-frame spam)
+export const MELEE_REACH = 0.8; // m of reach beyond the two fighters' edges
+export const RELOAD_TIME = 1.6; // s you are disarmed after a weapon runs dry (survive by moving!)
 
-// Blast zones (ring-out happens beyond these, in meters)
+// Blast zones (legacy ring-out constants; the stage now WRAPS instead, see KO_PERCENT)
 export const BLAST_X = 4;       // past left/right stage edges
 export const BLAST_TOP = 9;     // above the top of the screen
 export const BLAST_BOT = 5;     // below the floor
+export const KO_PERCENT = 150;  // damage % at which a fighter is KO'd (wrap-around stage, no ring-out)
+// Damage-shrink comeback mechanic (capped): as a fighter's damage climbs to KO_PERCENT
+// they shrink to MIN_SIZE and gain up to +MAX_SPEED_BOOST run speed / +MAX_JUMP_BOOST jump.
+export const MIN_SIZE = 0.62;
+export const MAX_SPEED_BOOST = 0.45;
+export const MAX_JUMP_BOOST = 0.32;
 
 // Palette
 export const COL = {

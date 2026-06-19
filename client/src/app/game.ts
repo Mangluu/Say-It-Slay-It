@@ -1,4 +1,4 @@
-import { Application, Container } from "pixi.js";
+import { Application, Container, Texture } from "pixi.js";
 import * as C from "../config";
 import { Background } from "../render/background";
 import { KeyboardSource } from "../input/keyboard";
@@ -7,6 +7,7 @@ import { Music } from "../audio/music";
 import { ContentProvider, ItemSpec } from "../content/types";
 import { LocalProvider } from "../content/remote";
 import { PhoneHub } from "../input/phone";
+import { LaptopMic } from "../audio/laptopMic";
 
 export interface Scene {
   container: Container;
@@ -29,9 +30,16 @@ export class Game {
   provider: ContentProvider = new LocalProvider();
 
   mode: "solo" | "versus" = "versus";
-  controlMode: "keyboard" | "phone" = "keyboard";
+  controlMode: "keyboard" | "phone" | "gamepad" = "keyboard";
   phoneHub?: PhoneHub;
+  laptopMic?: LaptopMic; // gamepad mode: the shared laptop mic used for shout-to-forge
+  padIndex: number[] = [0, 1]; // gamepad mode: each player's fixed navigator.getGamepads() index
   arsenals: ItemSpec[][] = [[], []];
+  // A weapon shouted in the pre-fight tutorial, forged after the scene hands off. The
+  // fight consumes it: into the arsenal if it resolved before the fight built, else via
+  // Match.injectWeapon once it lands (liveForge never re-reads arsenals mid-fight).
+  pendingWeapon: (ItemSpec | null)[] = [null, null];
+  profiles: { username: string; headTex?: Texture }[] = [{ username: "" }, { username: "" }];
   lastScore = 0;
   lastWave = 1;
 

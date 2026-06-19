@@ -1,5 +1,7 @@
-import { ContentProvider, ItemSpec } from "./types";
+import { ContentProvider, ItemSpec, Archetype } from "./types";
 import { ARCHETYPES } from "./archetypes";
+import { STYLE } from "./style";
+import { nounEmoji, weaponEffect } from "./nouns";
 
 // Curated fallback pool: instant, no models. Also the showcase "safe mode"
 // source and the P0/P1 content. Funny names, fixed (fair) stats by archetype.
@@ -19,10 +21,41 @@ const POOL: PoolEntry[] = [
 ];
 
 let counter = 0;
+const ARCH_KEYS = Object.keys(ARCHETYPES) as Archetype[];
+
+// A random curated weapon, synchronously (used to seed a player's first weapon so a
+// phone match can start instantly, with the rest forged by shouting mid-fight).
+export function randomMockItem(): ItemSpec {
+  const base = POOL[(Math.random() * POOL.length) | 0];
+  return { ...base, id: `itm_${counter++}`, stats: ARCHETYPES[base.archetype], effect: weaponEffect(base.name) };
+}
+
+function titleCase(s: string): string {
+  return s.trim().replace(/\s+/g, " ").split(" ").slice(0, 5)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
+}
 
 export class MockProvider implements ContentProvider {
-  async forgeItem(_phrase: string, _playerId: number): Promise<ItemSpec> {
-    const base = POOL[(Math.random() * POOL.length) | 0];
-    return { ...base, id: `itm_${counter++}`, stats: ARCHETYPES[base.archetype] };
+  async forgeItem(phrase: string, _playerId: number): Promise<ItemSpec> {
+    const p = (phrase || "").trim();
+    if (p) {
+      // Safe mode / no GPU still reflects what the player said: a random (fair)
+      // archetype, with the name + emoji taken from the phrase itself.
+      const arch = ARCH_KEYS[(Math.random() * ARCH_KEYS.length) | 0];
+      const st = STYLE[arch];
+      return {
+        id: `itm_${counter++}`,
+        name: titleCase(p) || "Mystery Weapon",
+        archetype: arch,
+        flavor: "",
+        voiceBark: "",
+        visualPrompt: p,
+        color: st.color,
+        emoji: nounEmoji(p) || st.emoji,
+        stats: ARCHETYPES[arch],
+        effect: weaponEffect(p),
+      };
+    }
+    return randomMockItem();
   }
 }

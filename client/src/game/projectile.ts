@@ -22,7 +22,7 @@ export class Projectile {
     spreadRad = 0,
   ) {
     const t = spec.stats.trajectory;
-    this.radius = 0.22 * spec.stats.projectileScale;
+    this.radius = 0.26 * spec.stats.projectileScale; // bigger so the thrown weapon reads clearly
     this.life = t === "flat" ? 1.1 : t === "return" ? 2.4 : t === "place" ? 6 : 2.6;
 
     this.body = this.gw.world.createBody({
@@ -40,9 +40,11 @@ export class Projectile {
       filterGroupIndex: -(owner.index + 1),
     });
 
-    const speed = t === "lob" ? 11 : t === "flat" ? 17 : t === "homing" ? 9 : t === "return" ? 13 : t === "spread" ? 14 : 6;
+    // All weapons fly in the FACING direction (no auto-aim). Speeds tuned so nothing
+    // just drops at the thrower's feet.
+    const speed = t === "lob" ? 13 : t === "flat" ? 17 : t === "homing" ? 16 : t === "return" ? 13 : t === "spread" ? 14 : 10;
     let vx = dir * speed;
-    let vy = t === "lob" ? 7 : t === "place" ? 2 : 0;
+    let vy = t === "lob" ? 6 : t === "place" ? 3 : 0;
     if (spreadRad) {
       const c = Math.cos(spreadRad), s = Math.sin(spreadRad);
       const nx = vx * c - vy * s, ny = vx * s + vy * c;
@@ -51,15 +53,12 @@ export class Projectile {
     this.body.setLinearVelocity(Vec2(vx, vy));
   }
 
-  update(dt: number, foe: Fighter) {
+  update(dt: number, _foe: Fighter) {
     this.age += dt;
     const t = this.spec.stats.trajectory;
-    if (t === "homing" && foe.alive) {
-      const p = this.body.getPosition();
-      const dx = foe.pos.x - p.x, dy = foe.pos.y + 0.4 - p.y;
-      const len = Math.hypot(dx, dy) || 1;
-      this.body.setLinearVelocity(Vec2((dx / len) * 11, (dy / len) * 11));
-    } else if (t === "return") {
+    // No homing/auto-aim: it was an unfair lock-on. "homing" weapons are now just a
+    // fast straight dart in the facing direction (see the speed table above).
+    if (t === "return") {
       if (!this.returning && this.age > 0.55) this.returning = true;
       if (this.returning) {
         const p = this.body.getPosition();

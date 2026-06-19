@@ -2,17 +2,17 @@ import { Container } from "pixi.js";
 import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { mkText, Menu } from "../ui/theme";
-import { addScore, getScores, qualifies } from "../util/leaderboard";
+import { addScore, getScores, qualifies, NAME_MAX } from "../util/leaderboard";
 
 export function LeaderboardEntryScene(game: Game): Scene {
   const container = new Container();
   let score = 0, wave = 1;
-  let initials = ["A", "A", "A"];
-  let cur = 0;
+  let name = "";              // the player's full typed name (was 3 fixed initials)
   let canEnter = false;
-  let initialsText: ReturnType<typeof mkText>;
+  let nameText: ReturnType<typeof mkText>;
 
-  const refresh = () => { initialsText.text = initials.join(""); };
+  // show the typed name plus a blinking-style cursor underscore while there is room
+  const refresh = () => { nameText.text = name + (name.length < NAME_MAX ? "_" : ""); };
 
   return {
     container,
@@ -23,10 +23,10 @@ export function LeaderboardEntryScene(game: Game): Scene {
       container.addChild(t, s);
       canEnter = qualifies(score);
       if (canEnter) {
-        const p = mkText("NEW HIGH SCORE!  type initials, Enter to save", 22, C.COL.yellow, "700");
+        const p = mkText("NEW HIGH SCORE!  type your name, Enter to save", 22, C.COL.yellow, "700");
         p.anchor.set(0.5); p.position.set(C.DESIGN_W / 2, 286); container.addChild(p);
-        initialsText = mkText("AAA", 84, C.COL.p1); initialsText.anchor.set(0.5); initialsText.position.set(C.DESIGN_W / 2, 372);
-        container.addChild(initialsText);
+        nameText = mkText("_", 64, C.COL.p1); nameText.anchor.set(0.5); nameText.position.set(C.DESIGN_W / 2, 372);
+        container.addChild(nameText);
       } else {
         const p = mkText("press Enter to continue", 24, C.COL.grey, "700");
         p.anchor.set(0.5); p.position.set(C.DESIGN_W / 2, 320); container.addChild(p);
@@ -36,10 +36,14 @@ export function LeaderboardEntryScene(game: Game): Scene {
     update() {},
     onKey(code) {
       if (!canEnter) { if (code === "Enter" || code === "Space") game.go("leaderboard"); return; }
-      if (code === "Enter") { addScore(initials.join(""), score); game.go("leaderboard"); return; }
-      if (code === "Backspace") { cur = Math.max(0, cur - 1); initials[cur] = "A"; refresh(); return; }
-      const m = code.match(/^Key([A-Z])$/);
-      if (m) { initials[cur] = m[1]; cur = Math.min(2, cur + 1); refresh(); }
+      if (code === "Enter") { addScore(name, score); game.go("leaderboard"); return; }
+      if (code === "Backspace") { name = name.slice(0, -1); refresh(); return; }
+      if (name.length >= NAME_MAX) return;
+      if (code === "Space" && name.length > 0) { name += " "; refresh(); return; }
+      const letter = code.match(/^Key([A-Z])$/);
+      if (letter) { name += letter[1]; refresh(); return; }
+      const digit = code.match(/^Digit([0-9])$/);
+      if (digit) { name += digit[1]; refresh(); }
     },
   };
 }
@@ -54,7 +58,7 @@ export function LeaderboardScene(game: Game): Scene {
       container.addChild(t);
       const rows = getScores();
       if (rows.length === 0) {
-        const none = mkText("no scores yet — play Solo Score Attack!", 24, C.COL.grey, "700");
+        const none = mkText("no scores yet, play Solo Score Attack!", 24, C.COL.grey, "700");
         none.anchor.set(0.5); none.position.set(C.DESIGN_W / 2, 250); container.addChild(none);
       }
       rows.forEach((r, i) => {

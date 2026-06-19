@@ -57,6 +57,16 @@ async def endpoint(ws: WebSocket, role: str, room: str, slot: int):
                 continue
             if role == "controller":
                 data["slot"] = slot
+                try:  # capture the raw player action stream for later AI training
+                    from . import log
+                    if data.get("type") == "input":
+                        log.event("input", room=room, slot=slot, state=data.get("state"))
+                    elif data.get("type") == "voice":
+                        log.event("voice_raw", room=room, slot=slot, text=data.get("text"))
+                    elif data.get("type") == "profile":
+                        log.event("profile", room=room, slot=slot, username=data.get("username"), hasPhoto=bool(data.get("photo")))
+                except Exception:
+                    pass
                 await _send(r.game, data)
             else:
                 target = data.get("slot")

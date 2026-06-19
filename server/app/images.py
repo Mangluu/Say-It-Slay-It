@@ -49,10 +49,12 @@ def generate_sprite(prompt: str, _warm: bool = False) -> bytes:
             return f.read()
 
     pipe = _load()
-    full = (f"{prompt}, cute game item sprite, centered, sticker style, vibrant, "
-            f"bold outline, plain flat background, no shadow")
+    # Force ONE clean centered object (SD-Turbo otherwise scatters several copies),
+    # on a flat background so the rembg cutout is clean.
+    full = (f"{prompt}, a single object, one item, centered, simple cartoon sticker, "
+            f"thick black outline, flat white background, no text, no words, no scene")
     with _lock:  # diffusers scheduler is not thread-safe; serialize on one GPU
-        img = pipe(prompt=full, num_inference_steps=2, guidance_scale=0.0,
+        img = pipe(prompt=full, num_inference_steps=4, guidance_scale=0.0,
                    height=512, width=512).images[0]
 
     try:

@@ -9,6 +9,8 @@ import { ResultScene } from "./scenes/result";
 import { HallScene } from "./scenes/hall";
 import { ControlsScene } from "./scenes/controls";
 import { LobbyScene } from "./scenes/lobby";
+import { GamepadLobbyScene } from "./scenes/gamepadLobby";
+import { TutorialScene } from "./scenes/tutorial";
 import { LeaderboardScene, LeaderboardEntryScene } from "./scenes/leaderboard";
 
 async function main() {
@@ -28,6 +30,8 @@ async function main() {
   game.register("hall", HallScene);
   game.register("controls", ControlsScene);
   game.register("lobby", LobbyScene);
+  game.register("gamepadLobby", GamepadLobbyScene);
+  game.register("tutorial", TutorialScene);
   game.register("leaderboard", LeaderboardScene);
   game.register("leaderboardEntry", LeaderboardEntryScene);
   game.go("title");

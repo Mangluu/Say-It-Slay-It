@@ -1,8 +1,10 @@
-import { Assets, Container, Sprite, Text } from "pixi.js";
+import { Container, Sprite, Text } from "pixi.js";
 import * as C from "../config";
 import { Scene, Game } from "../app/game";
 import { mkText } from "../ui/theme";
 import { ItemSpec } from "../content/types";
+import { releaseAllSprites } from "../content/remote";
+import { loadTex } from "../util/tex";
 import { record } from "../util/hall";
 
 const PER = 3;
@@ -39,8 +41,9 @@ export function PhoneForgeScene(game: Game): Scene {
   return {
     container,
     enter() {
+      void releaseAllSprites(); // free the previous match's sprite blobs + textures
       const t = mkText("SHOUT YOUR WEAPONS", 46, C.COL.yellow); t.anchor.set(0.5); t.position.set(C.DESIGN_W / 2, 66); container.addChild(t);
-      const sub = mkText("hold the MIC on your phone and shout 3 weapons each", 22, C.COL.white, "700"); sub.anchor.set(0.5); sub.position.set(C.DESIGN_W / 2, 112); container.addChild(sub);
+      const sub = mkText("hold the MIC and shout your FIRST weapon (more get forged mid-fight)", 22, C.COL.white, "700"); sub.anchor.set(0.5); sub.position.set(C.DESIGN_W / 2, 112); container.addChild(sub);
       for (let s = 0; s < 2; s++) {
         const lbl = mkText(`PLAYER ${s + 1}`, 28, s === 0 ? C.COL.p1 : C.COL.p2); lbl.anchor.set(0.5); lbl.position.set(colX[s], 184); container.addChild(lbl);
         const cnt = mkText(`0 / ${PER}`, 22, C.COL.grey, "700"); cnt.anchor.set(0.5); cnt.position.set(colX[s], 218); container.addChild(cnt); countTxt[s] = cnt;
@@ -56,7 +59,7 @@ export function PhoneForgeScene(game: Game): Scene {
       for (const r of rows) {
         if (r.item && r.item.spriteUrl && !r.sprited) {
           r.sprited = true;
-          Assets.load(r.item.spriteUrl).then((tex) => {
+          loadTex(r.item.spriteUrl).then((tex) => {
             const s = new Sprite(tex); s.anchor.set(0.5); s.width = 46; s.height = 46; s.position.set(-140, 4); r.row.addChild(s);
           }).catch(() => { /* keep text */ });
         }
@@ -64,7 +67,14 @@ export function PhoneForgeScene(game: Game): Scene {
     },
     onKey(k) {
       if (k === "Escape") { game.controlMode = "keyboard"; game.phoneHub?.close(); game.phoneHub = undefined; game.go("title"); }
-      else if (k === "Enter") { game.arsenals = arsenals; game.music.start(); game.go("fight"); }
+      else if (k === "Enter") {
+        // Every joined player must have shouted at least once: it seeds their first
+        // weapon AND grants the phone mic permission the mid-fight loop relies on.
+        const hub = game.phoneHub;
+        const ready = [0, 1].every((s) => !hub?.joined[s] || submitted[s] >= 1);
+        if (!ready) return;
+        game.arsenals = arsenals; game.music.start(); game.go("fight");
+      }
     },
   };
 }

@@ -6,10 +6,17 @@ what a player shouts. Validation + clamp + denylist + timeout-to-fallback on top
 """
 import json
 import os
+import threading
 
 import ollama
 
 from .content_pool import ARCHETYPES, POOL, random_fallback
+
+# Serialize LLM calls so concurrent/typed forges queue instead of piling up on Ollama.
+_lock = threading.Lock()
+# Explicit timeout so a hung Ollama request RAISES (releasing _lock on all paths) instead
+# of stalling the entire forge subsystem forever; the except branch then returns a fallback.
+_client = ollama.Client(timeout=20.0)
 
 # Smaller model by default: on this Blackwell/Ollama build the 7B runs slowly,
 # and a 3B is plenty for naming a weapon + picking an archetype. Override with
@@ -29,10 +36,13 @@ SCHEMA = {
 }
 
 SYSTEM = (
-    "You are a weapon designer for a funny couch-brawler. Given a short phrase, invent ONE "
+    "You are a weapon designer for a funny couch-brawler. Given a short (sometimes misheard) phrase, invent ONE "
     "absurd but PG-13 weapon. Output STRICT JSON ONLY with exactly these keys: "
     "name (string, under 5 words, genuinely funny), archetype (one value from the allowed enum), "
-    "flavor (one short funny sentence). No other keys. No numbers or stats. "
+    "flavor (one short funny sentence), "
+    "visualPrompt (a short plain description of the weapon as ONE single physical object for an image generator, "
+    "e.g. 'a flaming rubber duck' or 'a chrome boomerang with glowing edges': just the object itself, no scene, "
+    "no people, no background). No other keys. No numbers or stats. "
     "Choose the archetype that best fits the phrase: "
     "heavy_bomb (big slow explosive), light_spam (fast weak rapid-fire), homing_pest (tracks the foe), "
     "boomerang (returns), scatter (spread shot), sticky_trap (placed trap), cloud (lingering gas)."
@@ -49,13 +59,13 @@ DENYLIST = {
 # one archetype). Each maps a phrase to a clearly different archetype.
 EXAMPLES = [
     {"role": "user", "content": 'Phrase: "flaming rubber duck of doom"'},
-    {"role": "assistant", "content": json.dumps({"name": "Flaming Rubber Duck of Doom", "archetype": "heavy_bomb", "flavor": "Quacks once, then detonates."})},
+    {"role": "assistant", "content": json.dumps({"name": "Flaming Rubber Duck of Doom", "archetype": "heavy_bomb", "flavor": "Quacks once, then detonates.", "visualPrompt": "a flaming rubber duck"})},
     {"role": "user", "content": 'Phrase: "rubber chicken machine gun"'},
-    {"role": "assistant", "content": json.dumps({"name": "Rubber Chicken SMG", "archetype": "light_spam", "flavor": "Squeaks with every shot."})},
+    {"role": "assistant", "content": json.dumps({"name": "Rubber Chicken SMG", "archetype": "light_spam", "flavor": "Squeaks with every shot.", "visualPrompt": "a rubber chicken shaped gun"})},
     {"role": "user", "content": 'Phrase: "glitter shotgun"'},
-    {"role": "assistant", "content": json.dumps({"name": "Glitter Boomstick", "archetype": "scatter", "flavor": "Fabulous and everywhere at once."})},
+    {"role": "assistant", "content": json.dumps({"name": "Glitter Boomstick", "archetype": "scatter", "flavor": "Fabulous and everywhere at once.", "visualPrompt": "a sparkly glitter shotgun"})},
     {"role": "user", "content": 'Phrase: "homesick boomerang"'},
-    {"role": "assistant", "content": json.dumps({"name": "Homesick Boomerang", "archetype": "boomerang", "flavor": "It always comes back to you."})},
+    {"role": "assistant", "content": json.dumps({"name": "Homesick Boomerang", "archetype": "boomerang", "flavor": "It always comes back to you.", "visualPrompt": "a wooden boomerang with sad eyes"})},
 ]
 
 
@@ -80,14 +90,15 @@ def forge_item(phrase: str) -> dict:
         # decoding. The fairness firewall is preserved by validating/clamping
         # below: we only read the string fields and the archetype enum, and the
         # model is never asked for numbers.
-        resp = ollama.chat(
-            model=MODEL,
-            messages=[{"role": "system", "content": SYSTEM}, *EXAMPLES,
-                      {"role": "user", "content": f'Phrase: "{phrase}"'}],
-            format="json",
-            options={"temperature": 0.9, "num_predict": 56, "top_p": 0.9},
-            keep_alive="30m",
-        )
+        with _lock:
+            resp = _client.chat(
+                model=MODEL,
+                messages=[{"role": "system", "content": SYSTEM}, *EXAMPLES,
+                          {"role": "user", "content": f'Phrase: "{phrase}"'}],
+                format="json",
+                options={"temperature": 0.9, "num_predict": 56, "top_p": 0.9},
+                keep_alive="30m",
+            )
         data = json.loads(resp["message"]["content"])
         arch = data.get("archetype")
         if arch not in ARCHETYPES:
@@ -110,7 +121,7 @@ def forge_item(phrase: str) -> dict:
 def warm():
     """Pre-warm the model so the first real forge is fast."""
     try:
-        ollama.chat(model=MODEL, messages=[{"role": "user", "content": "ok"}],
-                    options={"num_predict": 1}, keep_alive="30m")
+        _client.chat(model=MODEL, messages=[{"role": "user", "content": "ok"}],
+                     options={"num_predict": 1}, keep_alive="30m")
     except Exception:
         pass

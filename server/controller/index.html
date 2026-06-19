@@ -3,143 +3,230 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>MIC DROP — Controller</title>
+  <title>Say It, Slay It (Controller)</title>
   <style>
     :root { --p1:#3ce6f0; --p2:#f03caa; --bg:#0a0a12; }
-    * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
-    html, body { margin:0; height:100%; background:var(--bg); color:#fff; font-family:Arial, sans-serif; overflow:hidden; touch-action:none; }
+    * { box-sizing:border-box; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+    html,body { margin:0; height:100%; background:var(--bg); color:#fff; font-family:Arial,sans-serif; overflow:hidden; touch-action:none; }
     #top { position:fixed; top:0; left:0; right:0; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; font-weight:900; }
-    #status { font-size:14px; color:#8a8ea4; }
-    #slot { font-size:20px; }
-    #mic { position:fixed; top:46px; left:50%; transform:translateX(-50%); width:78%; max-width:520px; height:76px;
-           border-radius:18px; border:3px solid var(--accent,#face46); background:rgba(250,210,70,0.12); color:#face46;
-           font-size:22px; font-weight:900; display:flex; align-items:center; justify-content:center; }
-    #mic.rec { background:rgba(240,60,60,0.25); border-color:#f03c3c; color:#ff8a8a; }
-    #heard { position:fixed; top:132px; left:0; right:0; text-align:center; color:#fff; font-size:18px; min-height:24px; padding:0 16px; }
-    #stick { position:fixed; bottom:24px; left:18px; width:180px; height:180px; border-radius:50%;
+    #who { font-size:18px; color:var(--accent,#fff); }
+    #status { font-size:13px; color:#8a8ea4; font-weight:700; }
+    #rec { position:fixed; top:46px; left:50%; transform:translateX(-50%); padding:8px 20px; border-radius:14px;
+           font-size:19px; font-weight:900; background:rgba(240,60,60,0.20); border:2px solid #f03c3c; color:#ff9a9a;
+           opacity:0; transition:opacity .12s; pointer-events:none; }
+    #rec.on { opacity:1; }
+    #stick { position:fixed; bottom:30px; left:22px; width:212px; height:212px; border-radius:50%;
              background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.18); }
-    #thumb { position:absolute; width:78px; height:78px; border-radius:50%; left:51px; top:51px;
-             background:var(--accent,#3ce6f0); opacity:0.85; }
-    #buttons { position:fixed; bottom:24px; right:18px; width:230px; height:230px; }
-    .btn { position:absolute; width:96px; height:96px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-           font-weight:900; font-size:17px; background:rgba(255,255,255,0.10); border:2px solid rgba(255,255,255,0.22); }
-    .btn.act { background:rgba(255,255,255,0.30); }
-    #bThrow { right:0; top:60px; background:rgba(250,210,70,0.18); border-color:#face46; }
-    #bJump  { right:118px; top:60px; }
-    #bDash  { right:60px; top:0; }
-    #bSpecial { right:60px; bottom:0; background:rgba(240,60,170,0.18); border-color:#f03caa; }
-    #hint { position:fixed; bottom:2px; left:0; right:0; text-align:center; color:#555; font-size:11px; }
+    #stick .lab { position:absolute; top:8px; left:0; right:0; text-align:center; font-size:11px; color:#6b6f86; }
+    #thumb { position:absolute; width:92px; height:92px; border-radius:50%; left:60px; top:60px; background:var(--accent,#3ce6f0); opacity:0.85; }
+    #buttons { position:fixed; bottom:30px; right:22px; width:240px; height:240px; }
+    .btn { position:absolute; width:110px; height:110px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+           font-weight:900; font-size:18px; background:rgba(255,255,255,0.10); border:2px solid rgba(255,255,255,0.22); }
+    .btn.act { background:rgba(255,255,255,0.32); }
+    #bThrow { right:0; top:65px; background:rgba(250,210,70,0.18); border-color:#face46; }
+    #bMelee { right:122px; top:0; background:rgba(240,60,170,0.18); border-color:#f03caa; }
+    #bDash  { right:122px; bottom:0; }
+    #hint { position:fixed; bottom:4px; left:0; right:0; text-align:center; color:#4a4d5e; font-size:11px; }
+    /* intro */
+    #intro { position:fixed; inset:0; z-index:50; background:var(--bg); display:flex; flex-direction:column;
+             align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; }
+    #intro h1 { margin:0; font-size:30px; color:var(--accent); letter-spacing:2px; }
+    #plabel { font-size:18px; color:#8a8ea4; font-weight:900; }
+    #name { width:82%; max-width:420px; font-size:20px; padding:12px 14px; border-radius:12px;
+            border:2px solid var(--accent); background:rgba(10,10,20,0.92); color:#fff; text-align:center; outline:none; }
+    #selfieWrap { width:150px; height:150px; border-radius:50%; overflow:hidden; border:3px solid var(--accent);
+                  background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; }
+    #selfieWrap video, #selfieWrap img { width:100%; height:100%; object-fit:cover; }
+    #selfieWrap .ph { color:#555; font-size:13px; padding:0 10px; }
+    .ibtn { font-size:17px; font-weight:900; padding:12px 22px; border-radius:12px;
+            border:2px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.10); color:#fff; }
+    #join { background:var(--accent); color:#0a0a12; border:none; min-width:200px; }
+    #privacy { font-size:12px; color:#666; max-width:360px; line-height:1.4; }
   </style>
 </head>
 <body>
-  <div id="top"><div id="status">connecting...</div><div id="slot">P?</div></div>
-  <div id="mic">HOLD TO SHOUT YOUR WEAPON</div>
-  <div id="heard"></div>
-  <div id="stick"><div id="thumb"></div></div>
-  <div id="buttons">
-    <div class="btn" id="bDash">DASH</div>
-    <div class="btn" id="bJump">JUMP</div>
-    <div class="btn" id="bThrow">THROW</div>
-    <div class="btn" id="bSpecial">SPECIAL</div>
+  <div id="intro">
+    <h1>SAY IT, SLAY IT</h1>
+    <div id="plabel">PLAYER ?</div>
+    <input id="name" maxlength="12" placeholder="your name" />
+    <div id="selfieWrap"><div class="ph">optional selfie</div></div>
+    <button class="ibtn" id="selfieBtn">Take selfie</button>
+    <button class="ibtn" id="join">JOIN</button>
+    <div id="privacy">JOIN enables your mic so you can shout weapons during the match. The optional selfie becomes your fighter and stays on this local network.</div>
   </div>
-  <div id="hint">MIC DROP controller</div>
+
+  <div id="top"><div id="who">P?</div><div id="status">connecting...</div></div>
+  <div id="rec">SHOUT!</div>
+  <div id="stick"><div class="lab">MOVE &middot; push UP to JUMP</div><div id="thumb"></div></div>
+  <div id="buttons">
+    <div class="btn" id="bMelee">MELEE</div>
+    <div class="btn" id="bThrow">THROW</div>
+    <div class="btn" id="bDash">DASH</div>
+  </div>
+  <div id="hint">Say It, Slay It controller</div>
 
   <script>
     const qs = new URLSearchParams(location.search);
     const room = (qs.get("room") || "MICDROP").toUpperCase();
     const slot = parseInt(qs.get("slot") || "0", 10);
-    const accent = slot === 0 ? getComputedStyle(document.documentElement).getPropertyValue('--p1')
-                              : getComputedStyle(document.documentElement).getPropertyValue('--p2');
+    const accent = (slot === 0 ? getComputedStyle(document.documentElement).getPropertyValue('--p1')
+                              : getComputedStyle(document.documentElement).getPropertyValue('--p2')).trim();
     document.documentElement.style.setProperty('--accent', accent);
-    document.getElementById("slot").textContent = "P" + (slot + 1);
-    document.getElementById("slot").style.color = accent;
 
     const statusEl = document.getElementById("status");
-    const state = { axisX: 0, jump: false, throw: false, dash: false, special: false };
+    const whoEl = document.getElementById("who");
+    const recEl = document.getElementById("rec");
+    const state = { axisX:0, jump:false, throw:false, dash:false, special:false };
 
     // ---- websocket ----
-    let ws, connected = false;
+    let ws, connected=false, pendingProfile=null;
     function connect() {
       const proto = location.protocol === "https:" ? "wss" : "ws";
       ws = new WebSocket(`${proto}://${location.host}/ws?role=controller&room=${room}&slot=${slot}`);
-      ws.onopen = () => { connected = true; statusEl.textContent = "connected — room " + room; };
-      ws.onclose = () => { connected = false; statusEl.textContent = "disconnected, retrying..."; setTimeout(connect, 1000); };
-      ws.onmessage = (e) => { /* phase hints from the game could go here */ };
+      ws.onopen = () => { connected=true; statusEl.textContent="connected, room "+room; flushProfile(); };
+      ws.onclose = () => { connected=false; statusEl.textContent="reconnecting..."; setTimeout(connect, 1000); };
+      ws.onmessage = (e) => {
+        let d; try { d = JSON.parse(e.data); } catch { return; }
+        if (d.type === "record") { if (navigator.vibrate) navigator.vibrate(180); autoRecord(d.ms || 3000); }
+      };
     }
     connect();
 
-    let lastSend = 0;
+    let lastSend=0;
     function send(force) {
       const now = performance.now();
-      if (!force && now - lastSend < 40) return;
+      if (!force && now-lastSend < 40) return;
       lastSend = now;
-      if (connected) ws.send(JSON.stringify({ type: "input", state }));
+      if (connected) ws.send(JSON.stringify({ type:"input", state }));
     }
 
-    // ---- joystick (horizontal axis) ----
-    const stick = document.getElementById("stick"), thumb = document.getElementById("thumb");
-    let stickId = null;
+    // ---- joystick: horizontal = move, push UP = jump (frees a button) ----
+    const stick=document.getElementById("stick"), thumb=document.getElementById("thumb");
+    let stickId=null;
     function stickMove(t) {
-      const r = stick.getBoundingClientRect();
-      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      let dx = t.clientX - cx, dy = t.clientY - cy;
-      const max = r.width / 2 - 20, d = Math.hypot(dx, dy);
-      if (d > max) { dx *= max / d; dy *= max / d; }
-      thumb.style.left = (51 + dx) + "px"; thumb.style.top = (51 + dy) + "px";
-      state.axisX = Math.max(-1, Math.min(1, dx / max));
+      const r=stick.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+      let dx=t.clientX-cx, dy=t.clientY-cy;
+      const max=r.width/2-22, d=Math.hypot(dx,dy);
+      if (d>max){ dx*=max/d; dy*=max/d; }
+      thumb.style.left=(60+dx)+"px"; thumb.style.top=(60+dy)+"px";
+      state.axisX = Math.max(-1, Math.min(1, dx/max));
+      state.jump = (dy/max) < -0.5; // push up past halfway to jump (flick again to double-jump)
       send();
     }
-    function stickEnd() { stickId = null; thumb.style.left = "51px"; thumb.style.top = "51px"; state.axisX = 0; send(true); }
-    stick.addEventListener("touchstart", e => { const t = e.changedTouches[0]; stickId = t.identifier; stickMove(t); e.preventDefault(); }, { passive: false });
-    stick.addEventListener("touchmove", e => { for (const t of e.changedTouches) if (t.identifier === stickId) stickMove(t); e.preventDefault(); }, { passive: false });
-    stick.addEventListener("touchend", e => { for (const t of e.changedTouches) if (t.identifier === stickId) stickEnd(); }, { passive: false });
+    function stickEnd(){ stickId=null; thumb.style.left="60px"; thumb.style.top="60px"; state.axisX=0; state.jump=false; send(true); }
+    stick.addEventListener("touchstart", e=>{ const t=e.changedTouches[0]; stickId=t.identifier; stickMove(t); e.preventDefault(); }, {passive:false});
+    stick.addEventListener("touchmove", e=>{ for(const t of e.changedTouches) if(t.identifier===stickId) stickMove(t); e.preventDefault(); }, {passive:false});
+    stick.addEventListener("touchend", e=>{ for(const t of e.changedTouches) if(t.identifier===stickId) stickEnd(); }, {passive:false});
     stick.addEventListener("touchcancel", stickEnd);
 
-    // ---- buttons ----
+    // ---- action buttons (MELEE rides the 'special' field the game already reads) ----
     function bindBtn(id, key) {
-      const el = document.getElementById(id);
-      const down = e => { state[key] = true; el.classList.add("act"); send(true); e.preventDefault(); };
-      const up = e => { state[key] = false; el.classList.remove("act"); send(true); e.preventDefault(); };
-      el.addEventListener("touchstart", down, { passive: false });
-      el.addEventListener("touchend", up, { passive: false });
+      const el=document.getElementById(id);
+      const down=e=>{ state[key]=true; el.classList.add("act"); send(true); e.preventDefault(); };
+      const up=e=>{ state[key]=false; el.classList.remove("act"); send(true); e.preventDefault(); };
+      el.addEventListener("touchstart", down, {passive:false});
+      el.addEventListener("touchend", up, {passive:false});
       el.addEventListener("touchcancel", up);
     }
-    bindBtn("bJump", "jump"); bindBtn("bThrow", "throw"); bindBtn("bDash", "dash"); bindBtn("bSpecial", "special");
+    bindBtn("bThrow","throw"); bindBtn("bMelee","special"); bindBtn("bDash","dash");
 
-    // ---- push-to-talk mic ----
-    const micEl = document.getElementById("mic"), heardEl = document.getElementById("heard");
-    let rec, chunks = [], mime = "audio/webm";
-    async function startRec() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { heardEl.textContent = "mic needs HTTPS"; return; }
+    // ---- mic: granted once at JOIN, opened by the game's command mid-fight ----
+    // You watch the big screen (which shows the prompt + countdown), not your phone,
+    // so there is no on-phone mic button: the game pops the mic for you.
+    // We capture PCM via the Web Audio API and encode WAV ourselves instead of using
+    // MediaRecorder: on iOS Safari MediaRecorder produces empty 0-byte clips (which is
+    // exactly why iPhones never forged). Web Audio works on every device. The
+    // AudioContext is created + resumed on the JOIN tap (iOS needs a user gesture).
+    let audioCtx = null, micStream = null, recording = false;
+    async function grantMic() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : (MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "");
-        rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
-        chunks = []; rec.ondataavailable = e => chunks.push(e.data); rec.start();
-        micEl.classList.add("rec"); micEl.textContent = "LISTENING... (release to forge)";
-      } catch (e) { heardEl.textContent = "mic blocked: " + e.message; }
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!audioCtx) audioCtx = new AC();
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        return true;
+      } catch (e) { statusEl.textContent = "mic blocked (allow it to forge)"; return false; }
     }
-    function stopRec() {
-      if (!rec) return;
-      micEl.classList.remove("rec"); micEl.textContent = "forging...";
-      rec.onstop = async () => {
-        const blob = new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" });
-        rec.stream.getTracks().forEach(t => t.stop());
+    async function autoRecord(ms) {
+      if (recording) return;
+      recording = true; recEl.classList.add("on");
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!audioCtx) audioCtx = new AC();
+        if (audioCtx.state === "suspended") { try { await audioCtx.resume(); } catch (e) {} }
+        if (!micStream || !micStream.active) micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const src = audioCtx.createMediaStreamSource(micStream);
+        const proc = audioCtx.createScriptProcessor(4096, 1, 1);
+        const gain = audioCtx.createGain(); gain.gain.value = 0; // silent: keeps the processor pulling, no feedback
+        const chunks = []; let len = 0;
+        proc.onaudioprocess = (e) => { const d = e.inputBuffer.getChannelData(0); const c = new Float32Array(d.length); c.set(d); chunks.push(c); len += d.length; };
+        src.connect(proc); proc.connect(gain); gain.connect(audioCtx.destination);
+        await new Promise((r) => setTimeout(r, ms));
+        proc.disconnect(); src.disconnect(); gain.disconnect();
+        recEl.classList.remove("on");
+        const wav = encodeWav(chunks, len, audioCtx.sampleRate);
+        const fd = new FormData(); fd.append("audio", wav, "clip.wav");
+        const r = await fetch("/asr", { method: "POST", body: fd });
+        const j = await r.json(); const text = (j.text || "").trim();
+        if (text && connected) ws.send(JSON.stringify({ type: "voice", text }));
+      } catch (e) { statusEl.textContent = "mic error"; recEl.classList.remove("on"); }
+      recording = false;
+    }
+    function encodeWav(chunks, len, rate) {
+      const pcm = new Float32Array(len); let o = 0;
+      for (const c of chunks) { pcm.set(c, o); o += c.length; }
+      const buf = new ArrayBuffer(44 + pcm.length * 2), view = new DataView(buf);
+      const wstr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+      wstr(0, "RIFF"); view.setUint32(4, 36 + pcm.length * 2, true); wstr(8, "WAVE"); wstr(12, "fmt ");
+      view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+      view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+      wstr(36, "data"); view.setUint32(40, pcm.length * 2, true);
+      let p = 44; for (let i = 0; i < pcm.length; i++) { const s = Math.max(-1, Math.min(1, pcm[i])); view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7FFF, true); p += 2; }
+      return new Blob([view], { type: "audio/wav" });
+    }
+
+    // ---- intro: name + optional selfie, JOIN grants the mic and sends the profile ----
+    document.getElementById("plabel").textContent="PLAYER "+(slot+1);
+    document.getElementById("plabel").style.color=accent;
+    let photoData=null, camStream=null;
+    const sw=document.getElementById("selfieWrap"), selfieBtn=document.getElementById("selfieBtn");
+    selfieBtn.addEventListener("click", async () => {
+      if (!camStream) {
         try {
-          const fd = new FormData();
-          fd.append("audio", blob, "clip." + ((rec.mimeType || "webm").includes("mp4") ? "mp4" : "webm"));
-          const r = await fetch("/asr", { method: "POST", body: fd });
-          const j = await r.json();
-          const text = (j.text || "").trim();
-          heardEl.textContent = text ? '"' + text + '"' : "(didn't catch that)";
-          if (text && connected) ws.send(JSON.stringify({ type: "voice", text }));
-        } catch (e) { heardEl.textContent = "asr error"; }
-        micEl.textContent = "HOLD TO SHOUT YOUR WEAPON";
-      };
-      rec.stop();
+          camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user" } });
+          const v=document.createElement("video"); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=camStream;
+          sw.innerHTML=""; sw.appendChild(v); selfieBtn.textContent="Capture";
+        } catch(e){ sw.innerHTML='<div class="ph">camera blocked</div>'; }
+      } else {
+        photoData = stylize(sw.querySelector("video"));
+        camStream.getTracks().forEach(t=>t.stop()); camStream=null;
+        const img=document.createElement("img"); img.src=photoData; sw.innerHTML=""; sw.appendChild(img);
+        selfieBtn.textContent="Retake";
+      }
+    });
+    function stylize(src) {
+      const S=140, cv=document.createElement("canvas"); cv.width=cv.height=S; const ctx=cv.getContext("2d");
+      const vw=src.videoWidth||S, vh=src.videoHeight||S, m=Math.min(vw,vh);
+      ctx.drawImage(src,(vw-m)/2,(vh-m)/2,m,m,0,0,S,S);
+      const im=ctx.getImageData(0,0,S,S), d=im.data, lv=5, stp=255/(lv-1);
+      for (let i=0;i<d.length;i+=4) for (let k=0;k<3;k++){ const val=(d[i+k]-128)*1.25+128; d[i+k]=Math.max(0,Math.min(255,Math.round(val/stp)*stp)); }
+      ctx.putImageData(im,0,0);
+      ctx.globalCompositeOperation="destination-in"; ctx.beginPath(); ctx.arc(S/2,S/2,S/2-3,0,7); ctx.fill();
+      ctx.globalCompositeOperation="source-over"; ctx.lineWidth=8; ctx.strokeStyle=accent||"#ffffff"; ctx.beginPath(); ctx.arc(S/2,S/2,S/2-5,0,7); ctx.stroke();
+      return cv.toDataURL("image/png");
     }
-    micEl.addEventListener("touchstart", e => { startRec(); e.preventDefault(); }, { passive: false });
-    micEl.addEventListener("touchend", e => { stopRec(); e.preventDefault(); }, { passive: false });
+    function sendProfile() {
+      const username = (document.getElementById("name").value||"").trim();
+      whoEl.textContent = username || ("P"+(slot+1));
+      const msg={ type:"profile", username, photo:photoData||undefined };
+      if (connected) ws.send(JSON.stringify(msg)); else pendingProfile=msg;
+    }
+    function flushProfile(){ if(pendingProfile&&connected){ ws.send(JSON.stringify(pendingProfile)); pendingProfile=null; } }
+    document.getElementById("join").addEventListener("click", async () => {
+      await grantMic();   // a user gesture, so the mid-fight auto-record needs no extra tap
+      sendProfile();
+      document.getElementById("intro").style.display="none";
+    });
   </script>
 </body>
 </html>
