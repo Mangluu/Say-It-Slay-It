@@ -15,6 +15,18 @@ LAN with no internet.
 
 ---
 
+## Trailer and screenshots
+
+<video src="https://github.com/GameAISchool2026members/Say-It-Slay-It/raw/main/media/say-it-slay-it-trailer.mp4" controls muted width="720"></video>
+
+13 seconds: the title, the shout-to-forge moment, a brawl, a KO. If the player does not load inline, [click here to watch the trailer](media/say-it-slay-it-trailer.mp4).
+
+| Brawl with AI-forged weapons | Run dry, shout a new one |
+|:---:|:---:|
+| ![Brawl with the LLM-forged Flame Disco Chainsaw versus Exploding Rubber Duck](media/02_combat.png) | ![GET READY prompt: shout a weapon to forge it](media/03_shout_ready.png) |
+
+---
+
 ## Run it
 **Prereqs (one time):**
 ```powershell
