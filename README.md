@@ -1,5 +1,9 @@
 # Say It, Slay It
 
+### 🏆 Winner — Game AI Summer School Jam 2026, Leiden 🇳🇱
+
+*Built in 48 hours by [Shivang Gupta](https://github.com/Mangluu) & [Asma Mouhib](https://www.linkedin.com/in/asma-mouhib-445178228/).*
+
 **Shout it. Forge it. Throw it.** A local couch brawler where your weapons are
 *generated from what you say*. Before each round you type (P4: shout) a few
 phrases; a local LLM turns each into a funny weapon; then you brawl, lobbing your
@@ -17,7 +21,7 @@ LAN with no internet.
 
 ## Trailer and screenshots
 
-<video src="https://github.com/GameAISchool2026members/Say-It-Slay-It/raw/main/media/say-it-slay-it-trailer.mp4" controls muted width="720"></video>
+<video src="https://github.com/Mangluu/Say-It-Slay-It/raw/main/media/say-it-slay-it-trailer.mp4" controls muted width="720"></video>
 
 13 seconds: the title, the shout-to-forge moment, a brawl, a KO. If the player does not load inline, [click here to watch the trailer](media/say-it-slay-it-trailer.mp4).
 
