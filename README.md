@@ -1,6 +1,6 @@
 # Say It, Slay It
 
-### 🏆 Winner — Game AI Summer School Jam 2026, Leiden 🇳🇱
+### 🏆 Game Jam Winner — [8th International Summer School on Artificial Intelligence and Games](https://school.gameaibook.org), Leiden 2026 🇳🇱
 
 *Built in 48 hours by [Shivang Gupta](https://github.com/Mangluu) & [Asma Mouhib](https://www.linkedin.com/in/asma-mouhib-445178228/).*
 
@@ -13,7 +13,7 @@ The hook is **comedy + spectacle + skill**: the AI *arms* you, but your skill
 decides the fight — and because every weapon's numbers come from a fixed
 server-side stat table (not the LLM), it can never grief the match.
 
-Built for the **Game AI Summer School Jam 2026 (Leiden)**. Runs **fully locally**
+Built for the game jam at the **[8th International Summer School on Artificial Intelligence and Games](https://school.gameaibook.org)** (Leiden, June 2026). Runs **fully locally**
 (Ollama + SD-Turbo on the laptop GPU) — no cloud, no per-play cost, works on a
 LAN with no internet.
 
